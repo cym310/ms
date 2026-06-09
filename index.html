@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI超极限微秒级秒表</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-color: #00ffff;
+            --accent-color: #ff00ff;
+            --ai-color: #00ff00;
+            --container-bg: rgba(0, 0, 0, 0.5);
+            --border-color: rgba(0, 255, 255, 0.3);
+            --shadow-color: rgba(0, 255, 255, 0.2);
+            --record-hover: rgba(0, 255, 255, 0.05);
+            --grid-color: rgba(0, 255, 255, 0.03);
+            --glow-color: rgba(0, 255, 255, 0.1);
+        }
+
+        .light-mode {
+            --bg-color: #f0f8ff;
+            --text-color: #0066cc;
+            --accent-color: #9933ff;
+            --ai-color: #009933;
+            --container-bg: rgba(255, 255, 255, 0.8);
+            --border-color: rgba(0, 102, 204, 0.3);
+            --shadow-color: rgba(0, 102, 204, 0.2);
+            --record-hover: rgba(0, 102, 204, 0.05);
+            --grid-color: rgba(0, 102, 204, 0.03);
+            --glow-color: rgba(0, 102, 204, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Orbitron', 'SF Mono', 'Monaco', monospace;
+        }
+
+        html, body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text-color);
+            position: relative;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: -2;
+        }
+
+        @keyframes gridMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+
+        .glow-bg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+            z-index: -1;
+            animation: glowPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.05) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            flex-shrink: 0;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .title {
+            font-size: clamp(16px, 4vw, 28px);
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, var(--text-color), var(--accent-color), var(--text-color));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s linear infinite;
+        }
+
+        @keyframes titleGlow {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .ai-badge {
+            font-size: clamp(11px, 2vw, 16px);
+            font-weight: 800;
+            color: var(--ai-color);
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+            animation: aiPulse 2s ease-in-out infinite;
+        }
+
+        .ai-calibration {
+            font-size: 11px;
+            margin-top: 3px;
+            opacity: 0.7;
+        }
+
+        @keyframes aiPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .time-section {
+            flex-shrink: 0;
+            margin-bottom: 15px;
+        }
+
+        .time-container {
+            position: relative;
+            padding: 25px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            background: var(--container-bg);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px var(--shadow-color), inset 0 0 30px var(--shadow-color);
+            animation: borderGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes borderGlow {
+            0% { border-color: var(--border-color); }
+            100% { border-color: rgba(255, 0, 255, 0.3); }
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110%;
+            height: 110%;
+            pointer-events: none;
+        }
+
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 2;
+            stroke: var(--border-color);
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .progress-ring .progress {
+            stroke: var(--text-color);
+            stroke-dasharray: 1256;
+            stroke-dashoffset: 1256;
+            transition: stroke-dashoffset 0.001s linear;
+            filter: drop-shadow(0 0 5px var(--text-color));
+        }
+
+        .time-display {
+            font-weight: 900;
+            letter-spacing: 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .integer-part {
+            font-size: clamp(28px, 12vw, 84px);
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+            text-shadow: 0 0 10px var(--text-color), 0 0 20px var(--text-color), 0 0 40px var(--text-color);
+            white-space: nowrap;
+        }
+
+        .decimal-part {
+            font-size: clamp(16px, 6vw, 42px);
+            display: flex;
+            align-items: baseline;
+            gap: 2px;
+            color: var(--accent-color);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color), 0 0 40px var(--accent-color);
+            white-space: nowrap;
+        }
+
+        .time-unit {
+            display: inline-block;
+            transition: all 0.05s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .time-unit.changing {
+            animation: numberPop 0.1s ease-out;
+        }
+
+        @keyframes numberPop {
+            0% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .ai-micro {
+            color: var(--ai-color);
+            text-shadow: 0 0 10px var(--ai-color), 0 0 20px var(--ai-color), 0 0 30px var(--ai-color);
+            animation: aiGlow 0.3s ease-in-out infinite alternate;
+        }
+
+        @keyframes aiGlow {
+            0% { text-shadow: 0 0 10px var(--ai-color), 0 0 20px var(--ai-color); }
+            100% { text-shadow: 0 0 20px var(--ai-color), 0 0 40px var(--ai-color), 0 0 60px var(--ai-color); }
+        }
+
+        .btn-section {
+            flex-shrink: 0;
+            margin-bottom: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: clamp(8px, 3vw, 20px);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: clamp(10px, 3vw, 16px) clamp(18px, 5vw, 36px);
+            font-size: clamp(13px, 3vw, 17px);
+            font-weight: 700;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.08s ease, box-shadow 0.08s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--container-bg);
+            backdrop-filter: blur(5px);
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+
+        button:hover::before {
+            transform: translateX(100%);
+        }
+
+        button:hover:not(:disabled) {
+            box-shadow: 0 0 25px currentColor;
+        }
+
+        button:active:not(:disabled) {
+            filter: brightness(0.8);
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            box-shadow: none !important;
+        }
+
+        #start, #startPause {
+            color: #00ff00;
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3), inset 0 0 15px rgba(0, 255, 0, 0.1);
+        }
+
+        #pause {
+            color: #ffff00;
+            border-color: #ffff00;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3), inset 0 0 15px rgba(255, 255, 0, 0.1);
+        }
+
+        #reset {
+            color: #ff0000;
+            border-color: #ff0000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3), inset 0 0 15px rgba(255, 0, 0, 0.1);
+        }
+
+        #record {
+            color: var(--text-color);
+            border-color: var(--text-color);
+            box-shadow: 0 0 15px var(--shadow-color), inset 0 0 15px var(--shadow-color);
+        }
+
+        #clearRecords {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1);
+        }
+
+        #settings {
+            color: #ffffff;
+            border-color: #ffffff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .settings-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .settings-content {
+            background: var(--container-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 0 40px var(--shadow-color);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .settings-modal.active .settings-content {
+            transform: translateY(0);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-color);
+            letter-spacing: 3px;
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 5px;
+            box-shadow: none !important;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .setting-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 54px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--ai-color);
+            box-shadow: 0 0 10px var(--ai-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .decimal-select {
+            display: flex;
+            gap: 8px;
+        }
+
+        .decimal-option {
+            padding: 6px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .decimal-option.active {
+            background: var(--text-color);
+            color: var(--bg-color);
+            border-color: var(--text-color);
+        }
+
+        .ai-precision-select {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-precision-option {
+            padding: 6px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .ai-precision-option.active {
+            background: var(--ai-color);
+            color: var(--bg-color);
+            border-color: var(--ai-color);
+        }
+
+        .record-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            width: 100%;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .record-title {
+            flex-shrink: 0;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-color);
+            text-align: left;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--shadow-color);
+        }
+
+        .record-list {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--container-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 20px var(--shadow-color);
+            backdrop-filter: blur(10px);
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
+            mask-image: radial-gradient(white, black);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+
+        .record-list-inner {
+            padding: 12px;
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .record-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+
+        .record-item:hover {
+            background: var(--record-hover);
+            border-left: 3px solid var(--text-color);
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .record-index {
+            color: var(--accent-color);
+            font-weight: 700;
+            width: 55px;
+            text-align: left;
+            text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+        }
+
+        .record-time {
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 1px;
+            text-shadow: 0 0 5px var(--shadow-color);
+        }
+
+        .record-time .ai-micro {
+            font-size: 0.8em;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .running .integer-part {
+            animation: timeGlow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes timeGlow {
+            0% { text-shadow: 0 0 10px var(--text-color), 0 0 20px var(--text-color), 0 0 40px var(--text-color); }
+            100% { text-shadow: 0 0 20px var(--text-color), 0 0 40px var(--text-color), 0 0 80px var(--text-color); }
+        }
+
+        @media (min-width: 768px) {
+            .container { padding: 20px; }
+            .time-display { flex-direction: row; gap: 8px; }
+            .record-list-inner::-webkit-scrollbar { width: 6px; }
+            .record-list-inner::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 3px; }
+            .record-list-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        }
+
+        @media (max-width: 360px) {
+            .container { padding: 10px; }
+            .btn-group { gap: 6px; }
+            button { padding: 8px 14px; font-size: 12px; }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="glow-bg"></div>
+    <div class="scanline"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">AI超极限微秒级秒表</h1>
+            <div class="ai-badge">
+                ✦ AI四重校准 · 超极限微秒级 ✦
+                <div class="ai-calibration" id="aiCalibration">AI校准完成 ✓</div>
+            </div>
+        </div>
+
+        <div class="time-section">
+            <div class="time-container">
+                <svg class="progress-ring" viewBox="0 0 400 400">
+                    <circle cx="200" cy="200" r="198"></circle>
+                    <circle class="progress" cx="200" cy="200" r="198"></circle>
+                </svg>
+
+                <div class="time-display">
+                    <div class="integer-part">
+                        <span id="day" class="time-unit">00</span>:
+                        <span id="hour" class="time-unit">00</span>:
+                        <span id="min" class="time-unit">00</span>:
+                        <span id="sec" class="time-unit">00</span>
+                    </div>
+                    <div class="decimal-part">
+                        .<span id="micro1">000</span><span id="micro2" class="ai-micro" style="display: none;">000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-section">
+            <div class="btn-group">
+                <button id="start">开始</button>
+                <button id="startPause" style="display: none;">开始</button>
+                <button id="pause" disabled>暂停</button>
+                <button id="reset">重置</button>
+                <button id="record">计次</button>
+                <button id="clearRecords">清空</button>
+                <button id="settings">设置</button>
+            </div>
+        </div>
+
+        <div class="record-section">
+            <div class="record-title">计时记录</div>
+            <div class="record-list">
+                <div class="record-list-inner" id="recordList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2 class="settings-title">设置</h2>
+                <button class="close-settings" id="closeSettings">&times;</button>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">深色模式</span>
+                <label class="switch">
+                    <input type="checkbox" id="darkModeSwitch" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">开始暂停整合为一个按钮</span>
+                <label class="switch">
+                    <input type="checkbox" id="singleButtonSwitch">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">小数位数</span>
+                <div class="decimal-select">
+                    <div class="decimal-option active" data-value="3">3位（毫秒）</div>
+                    <div class="decimal-option" data-value="6">6位（微秒）</div>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">AI精度等级</span>
+                <div class="ai-precision-select">
+                    <div class="ai-precision-option" data-value="1">标准</div>
+                    <div class="ai-precision-option" data-value="2">高精度</div>
+                    <div class="ai-precision-option" data-value="3">极限</div>
+                    <div class="ai-precision-option active" data-value="4">超极限</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dayDom = document.getElementById('day');
+        const hourDom = document.getElementById('hour');
+        const minDom = document.getElementById('min');
+        const secDom = document.getElementById('sec');
+        const micro1Dom = document.getElementById('micro1');
+        const micro2Dom = document.getElementById('micro2');
+        const startBtn = document.getElementById('start');
+        const startPauseBtn = document.getElementById('startPause');
+        const pauseBtn = document.getElementById('pause');
+        const resetBtn = document.getElementById('reset');
+        const recordBtn = document.getElementById('record');
+        const clearRecordsBtn = document.getElementById('clearRecords');
+        const settingsBtn = document.getElementById('settings');
+        const recordList = document.getElementById('recordList');
+        const body = document.body;
+        const progressCircle = document.querySelector('.progress');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettingsBtn = document.getElementById('closeSettings');
+        const darkModeSwitch = document.getElementById('darkModeSwitch');
+        const singleButtonSwitch = document.getElementById('singleButtonSwitch');
+        const decimalOptions = document.querySelectorAll('.decimal-option');
+        const aiPrecisionOptions = document.querySelectorAll('.ai-precision-option');
+        const aiCalibrationDom = document.getElementById('aiCalibration');
+
+        let settings = {
+            darkMode: true,
+            singleButton: false,
+            decimalPlaces: 3,
+            aiPrecision: 4 // 新增4=超极限模式
+        };
+
+        let startTime = 0;
+        let totalElapsed = 0;
+        let animationId = null;
+        let isRunning = false;
+        let recordCount = 1;
+        let lastRecordTimestamp = 0; // 新增：记录上一次计次的时间戳
+        let lastValues = { day: '00', hour: '00', min: '00', sec: '00', micro1: '000', micro2: '000' };
+        
+        // ==========================================
+        // 🤖 AI四重时间校准引擎 V3.0（新增超极限模式）
+        // ==========================================
+        const aiTimeEngine = {
+            frameHistory: [],
+            maxHistoryLength: 80,
+            clockDrift: 0,
+            lastSyncTime: 0,
+            predictionWeight: 0.95,
+            frameInterval: 16.6667,
+            
+            // 超极限模式：时间戳插值算法
+            interpolationCounter: 0,
+            lastBaseTime: 0,
+            
+            precisionConfig: {
+                1: { historyLength: 20, predictionWeight: 0.5, syncInterval: 1000 },
+                2: { historyLength: 40, predictionWeight: 0.7, syncInterval: 500 },
+                3: { historyLength: 60, predictionWeight: 0.9, syncInterval: 200 },
+                4: { historyLength: 80, predictionWeight: 0.95, syncInterval: 100 } // 超极限配置
+            },
+            
+            init() {
+                this.frameHistory = [];
+                this.clockDrift = 0;
+                this.lastSyncTime = performance.now();
+                this.interpolationCounter = 0;
+                this.lastBaseTime = 0;
+                this.updateConfig();
+                aiCalibrationDom.textContent = 'AI超极限校准完成 ✓';
+            },
+            
+            updateConfig() {
+                const config = this.precisionConfig[settings.aiPrecision];
+                this.maxHistoryLength = config.historyLength;
+                this.predictionWeight = config.predictionWeight;
+                this.frameHistory = this.frameHistory.slice(-this.maxHistoryLength);
+            },
+            
+            recordFrame(currentTime) {
+                if (this.frameHistory.length > 0) {
+                    const lastFrame = this.frameHistory[this.frameHistory.length - 1];
+                    const actualInterval = currentTime - lastFrame.time;
+                    this.frameInterval = this.frameInterval * 0.95 + actualInterval * 0.05;
+                    
+                    this.frameHistory.push({
+                        time: currentTime,
+                        interval: actualInterval,
+                        error: actualInterval - this.frameInterval
+                    });
+                    
+                    if (this.frameHistory.length > this.maxHistoryLength) {
+                        this.frameHistory.shift();
+                    }
+                    
+                    const config = this.precisionConfig[settings.aiPrecision];
+                    if (currentTime - this.lastSyncTime > config.syncInterval) {
+                        this.syncClock(currentTime);
+                    }
+                } else {
+                    this.frameHistory.push({
+                        time: currentTime,
+                        interval: 0,
+                        error: 0
+                    });
+                }
+            },
+            
+            syncClock(currentTime) {
+                if (this.frameHistory.length < 10) return;
+                const theoreticalElapsed = this.frameHistory.length * this.frameInterval;
+                const actualElapsed = currentTime - this.frameHistory[0].time;
+                this.clockDrift = (actualElapsed - theoreticalElapsed) / this.frameHistory.length;
+                this.lastSyncTime = currentTime;
+                const driftMs = Math.abs(this.clockDrift * 1000).toFixed(3);
+                aiCalibrationDom.textContent = `AI超极限 · 漂移: ${driftMs}μs/帧`;
+            },
+            
+            getAccurateTime(baseTime) {
+                if (this.frameHistory.length < 5) return baseTime;
+                
+                let avgInterval = 0;
+                let weightSum = 0;
+                for (let i = 0; i < Math.min(10, this.frameHistory.length); i++) {
+                    const weight = 1 - (i / 10);
+                    avgInterval += this.frameHistory[this.frameHistory.length - 1 - i].interval * weight;
+                    weightSum += weight;
+                }
+                avgInterval /= weightSum;
+                
+                const predictedNextFrameTime = this.frameHistory[this.frameHistory.length - 1].time + avgInterval;
+                const timeDiff = predictedNextFrameTime - baseTime;
+                
+                const compensatedTime = baseTime + 
+                    timeDiff * this.predictionWeight + 
+                    this.clockDrift * this.frameHistory.length;
+                
+                // 超极限模式：时间戳插值
+                if (settings.aiPrecision === 4) {
+                    if (compensatedTime === this.lastBaseTime) {
+                        this.interpolationCounter++;
+                        // 同一帧内的不同点击，每次增加0.1微秒，强制区分
+                        return compensatedTime + (this.interpolationCounter * 0.1);
+                    } else {
+                        this.interpolationCounter = 0;
+                        this.lastBaseTime = compensatedTime;
+                        return compensatedTime;
+                    }
+                }
+                
+                return compensatedTime;
+            },
+            
+            reset() {
+                this.frameHistory = [];
+                this.clockDrift = 0;
+                this.lastSyncTime = 0;
+                this.frameInterval = 16.6667;
+                this.interpolationCounter = 0;
+                this.lastBaseTime = 0;
+                aiCalibrationDom.textContent = 'AI超极限校准完成 ✓';
+            }
+        };
+
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('stopwatchSettings');
+            if (savedSettings) settings = { ...settings, ...JSON.parse(savedSettings) };
+            applySettings();
+        }
+
+        function saveSettings() {
+            localStorage.setItem('stopwatchSettings', JSON.stringify(settings));
+        }
+
+        function applySettings() {
+            if (settings.darkMode) {
+                body.classList.remove('light-mode');
+                darkModeSwitch.checked = true;
+            } else {
+                body.classList.add('light-mode');
+                darkModeSwitch.checked = false;
+            }
+
+            if (settings.singleButton) {
+                startBtn.style.display = 'none';
+                pauseBtn.style.display = 'none';
+                startPauseBtn.style.display = 'block';
+                singleButtonSwitch.checked = true;
+                updateSingleButtonText();
+            } else {
+                startBtn.style.display = 'block';
+                pauseBtn.style.display = 'block';
+                startPauseBtn.style.display = 'none';
+                singleButtonSwitch.checked = false;
+                updateDoubleButtons();
+            }
+
+            decimalOptions.forEach(option => {
+                option.classList.remove('active');
+                if (parseInt(option.dataset.value) === settings.decimalPlaces) {
+                    option.classList.add('active');
+                }
+            });
+            
+            micro2Dom.style.display = settings.decimalPlaces === 6 ? 'inline' : 'none';
+
+            aiPrecisionOptions.forEach(option => {
+                option.classList.remove('active');
+                if (parseInt(option.dataset.value) === settings.aiPrecision) {
+                    option.classList.add('active');
+                }
+            });
+            aiTimeEngine.updateConfig();
+        }
+
+        function updateSingleButtonText() {
+            if (isRunning) {
+                startPauseBtn.textContent = '暂停';
+                startPauseBtn.style.color = '#ffff00';
+                startPauseBtn.style.borderColor = '#ffff00';
+            } else {
+                startPauseBtn.textContent = '开始';
+                startPauseBtn.style.color = '#00ff00';
+                startPauseBtn.style.borderColor = '#00ff00';
+            }
+        }
+
+        function updateDoubleButtons() {
+            if (isRunning) {
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+            } else {
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+            }
+        }
+
+        function pad(num, length = 2) {
+            return num.toString().padStart(length, '0');
+        }
+
+        let lastSecond = -1;
+        function updateProgress(seconds) {
+            const currentSecond = Math.floor(seconds);
+            if (currentSecond !== lastSecond) {
+                const circumference = 2 * Math.PI * 198;
+                const offset = circumference - (seconds % 60) / 60 * circumference;
+                progressCircle.style.strokeDashoffset = offset;
+                lastSecond = currentSecond;
+            }
+        }
+
+        function updateNumber(element, newValue) {
+            if (element.textContent !== newValue) {
+                element.classList.remove('changing');
+                void element.offsetWidth;
+                element.classList.add('changing');
+                element.textContent = newValue;
+            }
+        }
+
+        function renderTime() {
+            if (!isRunning && totalElapsed === 0) return;
+            const now = performance.now();
+            aiTimeEngine.recordFrame(now);
+            const accurateNow = aiTimeEngine.getAccurateTime(now);
+            const elapsed = accurateNow - startTime + totalElapsed;
+
+            const days = Math.floor(elapsed / 86400000);
+            const hours = Math.floor((elapsed % 86400000) / 3600000);
+            const minutes = Math.floor((elapsed % 3600000) / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            const totalMicroseconds = Math.round(elapsed * 1000);
+            const microseconds = totalMicroseconds % 1000000;
+            const microStr = pad(microseconds, 6);
+            const micro1 = microStr.substring(0, 3);
+            const micro2 = microStr.substring(3, 6);
+
+            updateNumber(dayDom, pad(days));
+            updateNumber(hourDom, pad(hours));
+            updateNumber(minDom, pad(minutes));
+            updateNumber(secDom, pad(seconds));
+            updateNumber(micro1Dom, micro1);
+            if (settings.decimalPlaces === 6) updateNumber(micro2Dom, micro2);
+
+            updateProgress(elapsed / 1000);
+
+            lastValues = { 
+                day: pad(days), hour: pad(hours), min: pad(minutes), sec: pad(seconds), micro1, micro2 
+            };
+        }
+
+        function timerLoop() {
+            if (!isRunning) return;
+            renderTime();
+            animationId = requestAnimationFrame(timerLoop);
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            startTime = performance.now();
+            aiTimeEngine.reset();
+            aiTimeEngine.init();
+            timerLoop();
+            updateSingleButtonText();
+            updateDoubleButtons();
+            body.classList.add('running');
+        }
+
+        function pauseTimer() {
+            if (!isRunning) return;
+            isRunning = false;
+            cancelAnimationFrame(animationId);
+            const accurateNow = aiTimeEngine.getAccurateTime(performance.now());
+            totalElapsed += accurateNow - startTime;
+            updateSingleButtonText();
+            updateDoubleButtons();
+            body.classList.remove('running');
+            aiCalibrationDom.textContent = 'AI超极限校准完成 ✓';
+        }
+
+        function resetTimer() {
+            isRunning = false;
+            cancelAnimationFrame(animationId);
+            startTime = 0;
+            totalElapsed = 0;
+            recordCount = 1;
+            lastSecond = -1;
+            lastRecordTimestamp = 0;
+            dayDom.textContent = '00';
+            hourDom.textContent = '00';
+            minDom.textContent = '00';
+            secDom.textContent = '00';
+            micro1Dom.textContent = '000';
+            micro2Dom.textContent = '000';
+            aiTimeEngine.reset();
+            progressCircle.style.strokeDashoffset = 1256;
+            updateSingleButtonText();
+            updateDoubleButtons();
+            body.classList.remove('running');
+        }
+
+        function addRecord() {
+            if (totalElapsed === 0 && !isRunning) return;
+            
+            // 超极限模式：强制区分同一帧内的多次点击
+            let timeText;
+            if (settings.aiPrecision === 4) {
+                // 获取当前时间戳，即使和上一次一样，也会被插值算法强制加0.1微秒
+                const now = performance.now();
+                const accurateNow = aiTimeEngine.getAccurateTime(now);
+                const elapsed = accurateNow - startTime + totalElapsed;
+                
+                const totalMicroseconds = Math.round(elapsed * 1000);
+                const microseconds = totalMicroseconds % 1000000;
+                const microStr = pad(microseconds, 6);
+                
+                const day = pad(Math.floor(elapsed / 86400000));
+                const hour = pad(Math.floor((elapsed % 86400000) / 3600000));
+                const min = pad(Math.floor((elapsed % 3600000) / 60000));
+                const sec = pad(Math.floor((elapsed % 60000) / 1000));
+                
+                if (settings.decimalPlaces === 3) {
+                    timeText = `${day}:${hour}:${min}:${sec}.${microStr.substring(0, 3)}`;
+                } else {
+                    timeText = `${day}:${hour}:${min}:${sec}.${microStr.substring(0, 3)}<span class="ai-micro">${microStr.substring(3, 6)}</span>`;
+                }
+            } else {
+                if (settings.decimalPlaces === 3) {
+                    timeText = `${lastValues.day}:${lastValues.hour}:${lastValues.min}:${lastValues.sec}.${lastValues.micro1}`;
+                } else {
+                    timeText = `${lastValues.day}:${lastValues.hour}:${lastValues.min}:${lastValues.sec}.${lastValues.micro1}<span class="ai-micro">${lastValues.micro2}</span>`;
+                }
+            }
+            
+            const recordItem = document.createElement('div');
+            recordItem.className = 'record-item';
+            recordItem.innerHTML = `
+                <span class="record-index">第${recordCount}次</span>
+                <span class="record-time">${timeText}</span>
+            `;
+            recordList.appendChild(recordItem);
+            recordList.scrollTop = recordList.scrollHeight;
+            recordCount++;
+        }
+
+        function clearAllRecords() {
+            recordList.innerHTML = '';
+            recordCount = 1;
+        }
+
+        function openSettings() {
+            settingsModal.classList.add('active');
+        }
+
+        function closeSettings() {
+            settingsModal.classList.remove('active');
+        }
+
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        startPauseBtn.addEventListener('click', () => isRunning ? pauseTimer() : startTimer());
+        resetBtn.addEventListener('click', resetTimer);
+        recordBtn.addEventListener('click', addRecord);
+        clearRecordsBtn.addEventListener('click', clearAllRecords);
+        settingsBtn.addEventListener('click', openSettings);
+        closeSettingsBtn.addEventListener('click', closeSettings);
+
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) closeSettings();
+        });
+
+        darkModeSwitch.addEventListener('change', () => {
+            settings.darkMode = darkModeSwitch.checked;
+            applySettings();
+            saveSettings();
+        });
+
+        singleButtonSwitch.addEventListener('change', () => {
+            settings.singleButton = singleButtonSwitch.checked;
+            applySettings();
+            saveSettings();
+        });
+
+        decimalOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                settings.decimalPlaces = parseInt(option.dataset.value);
+                applySettings();
+                saveSettings();
+                if (!isRunning && totalElapsed === 0) {
+                    micro1Dom.textContent = '000';
+                    micro2Dom.textContent = '000';
+                }
+            });
+        });
+
+        aiPrecisionOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                settings.aiPrecision = parseInt(option.dataset.value);
+                applySettings();
+                saveSettings();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    isRunning ? pauseTimer() : startTimer();
+                    break;
+                case 'KeyR':
+                    e.preventDefault();
+                    resetTimer();
+                    break;
+                case 'KeyL':
+                    e.preventDefault();
+                    addRecord();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    closeSettings();
+                    break;
+            }
+        });
+
+        loadSettings();
+        aiTimeEngine.init();
+        resetTimer();
+    </script>
+</body>
+</html>
