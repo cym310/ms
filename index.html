@@ -1,1224 +1,762 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI超极限微秒级秒表</title>
-    <style>
-        :root {
-            --bg-color: #000000;
-            --text-color: #00ffff;
-            --accent-color: #ff00ff;
-            --ai-color: #00ff00;
-            --container-bg: rgba(0, 0, 0, 0.5);
-            --border-color: rgba(0, 255, 255, 0.3);
-            --shadow-color: rgba(0, 255, 255, 0.2);
-            --record-hover: rgba(0, 255, 255, 0.05);
-            --grid-color: rgba(0, 255, 255, 0.03);
-            --glow-color: rgba(0, 255, 255, 0.1);
-        }
-
-        .light-mode {
-            --bg-color: #f0f8ff;
-            --text-color: #0066cc;
-            --accent-color: #9933ff;
-            --ai-color: #009933;
-            --container-bg: rgba(255, 255, 255, 0.8);
-            --border-color: rgba(0, 102, 204, 0.3);
-            --shadow-color: rgba(0, 102, 204, 0.2);
-            --record-hover: rgba(0, 102, 204, 0.05);
-            --grid-color: rgba(0, 102, 204, 0.03);
-            --glow-color: rgba(0, 102, 204, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Orbitron', 'SF Mono', 'Monaco', monospace;
-        }
-
-        html, body {
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            background: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-color);
-            position: relative;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-
-        .grid-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                linear-gradient(var(--grid-color) 1px, transparent 1px),
-                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-            background-size: 50px 50px;
-            animation: gridMove 20s linear infinite;
-            z-index: -2;
-        }
-
-        @keyframes gridMove {
-            0% { background-position: 0 0; }
-            100% { background-position: 50px 50px; }
-        }
-
-        .glow-bg {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 800px;
-            height: 800px;
-            background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
-            z-index: -1;
-            animation: glowPulse 4s ease-in-out infinite;
-        }
-
-        @keyframes glowPulse {
-            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); }
-        }
-
-        .scanline {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(transparent 50%, rgba(0, 0, 0, 0.05) 50%);
-            background-size: 100% 4px;
-            z-index: 10;
-            pointer-events: none;
-            opacity: 0.3;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 900px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            padding: 15px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .header {
-            flex-shrink: 0;
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .title {
-            font-size: clamp(16px, 4vw, 28px);
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: 6px;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, var(--text-color), var(--accent-color), var(--text-color));
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: titleGlow 3s linear infinite;
-        }
-
-        @keyframes titleGlow {
-            0% { background-position: 0% center; }
-            100% { background-position: 200% center; }
-        }
-
-        .ai-badge {
-            font-size: clamp(11px, 2vw, 16px);
-            font-weight: 800;
-            color: var(--ai-color);
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
-            animation: aiPulse 2s ease-in-out infinite;
-        }
-
-        .ai-calibration {
-            font-size: 11px;
-            margin-top: 3px;
-            opacity: 0.7;
-        }
-
-        @keyframes aiPulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
-        }
-
-        .time-section {
-            flex-shrink: 0;
-            margin-bottom: 15px;
-        }
-
-        .time-container {
-            position: relative;
-            padding: 25px 15px;
-            border: 2px solid var(--border-color);
-            border-radius: 16px;
-            background: var(--container-bg);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 30px var(--shadow-color), inset 0 0 30px var(--shadow-color);
-            animation: borderGlow 2s ease-in-out infinite alternate;
-        }
-
-        @keyframes borderGlow {
-            0% { border-color: var(--border-color); }
-            100% { border-color: rgba(255, 0, 255, 0.3); }
-        }
-
-        .progress-ring {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 110%;
-            height: 110%;
-            pointer-events: none;
-        }
-
-        .progress-ring circle {
-            fill: none;
-            stroke-width: 2;
-            stroke: var(--border-color);
-            transform: rotate(-90deg);
-            transform-origin: center;
-        }
-
-        .progress-ring .progress {
-            stroke: var(--text-color);
-            stroke-dasharray: 1256;
-            stroke-dashoffset: 1256;
-            transition: stroke-dashoffset 0.001s linear;
-            filter: drop-shadow(0 0 5px var(--text-color));
-        }
-
-        .time-display {
-            font-weight: 900;
-            letter-spacing: 2px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .integer-part {
-            font-size: clamp(28px, 12vw, 84px);
-            display: flex;
-            align-items: baseline;
-            gap: 2px;
-            text-shadow: 0 0 10px var(--text-color), 0 0 20px var(--text-color), 0 0 40px var(--text-color);
-            white-space: nowrap;
-        }
-
-        .decimal-part {
-            font-size: clamp(16px, 6vw, 42px);
-            display: flex;
-            align-items: baseline;
-            gap: 2px;
-            color: var(--accent-color);
-            font-weight: 700;
-            text-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color), 0 0 40px var(--accent-color);
-            white-space: nowrap;
-        }
-
-        .time-unit {
-            display: inline-block;
-            transition: all 0.05s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .time-unit.changing {
-            animation: numberPop 0.1s ease-out;
-        }
-
-        @keyframes numberPop {
-            0% { transform: scale(1.2); opacity: 0.5; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .ai-micro {
-            color: var(--ai-color);
-            text-shadow: 0 0 10px var(--ai-color), 0 0 20px var(--ai-color), 0 0 30px var(--ai-color);
-            animation: aiGlow 0.3s ease-in-out infinite alternate;
-        }
-
-        @keyframes aiGlow {
-            0% { text-shadow: 0 0 10px var(--ai-color), 0 0 20px var(--ai-color); }
-            100% { text-shadow: 0 0 20px var(--ai-color), 0 0 40px var(--ai-color), 0 0 60px var(--ai-color); }
-        }
-
-        .btn-section {
-            flex-shrink: 0;
-            margin-bottom: 15px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: clamp(8px, 3vw, 20px);
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        button {
-            padding: clamp(10px, 3vw, 16px) clamp(18px, 5vw, 36px);
-            font-size: clamp(13px, 3vw, 17px);
-            font-weight: 700;
-            border: 2px solid transparent;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.08s ease, box-shadow 0.08s ease;
-            position: relative;
-            overflow: hidden;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: var(--container-bg);
-            backdrop-filter: blur(5px);
-            touch-action: manipulation;
-            user-select: none;
-        }
-
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.5s;
-        }
-
-        button:hover::before {
-            transform: translateX(100%);
-        }
-
-        button:hover:not(:disabled) {
-            box-shadow: 0 0 25px currentColor;
-        }
-
-        button:active:not(:disabled) {
-            filter: brightness(0.8);
-            box-shadow: 0 0 15px currentColor;
-        }
-
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            box-shadow: none !important;
-        }
-
-        #start, #startPause {
-            color: #00ff00;
-            border-color: #00ff00;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3), inset 0 0 15px rgba(0, 255, 0, 0.1);
-        }
-
-        #pause {
-            color: #ffff00;
-            border-color: #ffff00;
-            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3), inset 0 0 15px rgba(255, 255, 0, 0.1);
-        }
-
-        #reset {
-            color: #ff0000;
-            border-color: #ff0000;
-            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3), inset 0 0 15px rgba(255, 0, 0, 0.1);
-        }
-
-        #record {
-            color: var(--text-color);
-            border-color: var(--text-color);
-            box-shadow: 0 0 15px var(--shadow-color), inset 0 0 15px var(--shadow-color);
-        }
-
-        #clearRecords {
-            color: var(--accent-color);
-            border-color: var(--accent-color);
-            box-shadow: 0 0 15px rgba(255, 0, 255, 0.3), inset 0 0 15px rgba(255, 0, 255, 0.1);
-        }
-
-        #settings {
-            color: #ffffff;
-            border-color: #ffffff;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.1);
-        }
-
-        .settings-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .settings-modal.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .settings-content {
-            background: var(--container-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 16px;
-            padding: 25px;
-            width: 90%;
-            max-width: 450px;
-            box-shadow: 0 0 40px var(--shadow-color);
-            transform: translateY(-20px);
-            transition: transform 0.3s ease;
-        }
-
-        .settings-modal.active .settings-content {
-            transform: translateY(0);
-        }
-
-        .settings-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .settings-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-color);
-            letter-spacing: 3px;
-        }
-
-        .close-settings {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-color);
-            cursor: pointer;
-            padding: 5px;
-            box-shadow: none !important;
-        }
-
-        .setting-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .setting-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .setting-label {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 54px;
-            height: 28px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.2);
-            transition: 0.3s;
-            border-radius: 28px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: 0.3s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: var(--ai-color);
-            box-shadow: 0 0 10px var(--ai-color);
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-
-        .decimal-select {
-            display: flex;
-            gap: 8px;
-        }
-
-        .decimal-option {
-            padding: 6px 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: transparent;
-            color: var(--text-color);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .decimal-option.active {
-            background: var(--text-color);
-            color: var(--bg-color);
-            border-color: var(--text-color);
-        }
-
-        .ai-precision-select {
-            display: flex;
-            gap: 8px;
-        }
-
-        .ai-precision-option {
-            padding: 6px 10px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            background: transparent;
-            color: var(--text-color);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .ai-precision-option.active {
-            background: var(--ai-color);
-            color: var(--bg-color);
-            border-color: var(--ai-color);
-        }
-
-        .record-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-            width: 100%;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        .record-title {
-            flex-shrink: 0;
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: var(--text-color);
-            text-align: left;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px var(--shadow-color);
-        }
-
-        .record-list {
-            flex: 1;
-            min-height: 0;
-            overflow: hidden;
-            background: var(--container-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 0 20px var(--shadow-color);
-            backdrop-filter: blur(10px);
-            -webkit-mask-image: -webkit-radial-gradient(white, black);
-            mask-image: radial-gradient(white, black);
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            -webkit-transform: translate3d(0, 0, 0);
-            transform: translate3d(0, 0, 0);
-        }
-
-        .record-list-inner {
-            padding: 12px;
-            height: 100%;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .record-item {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            animation: slideIn 0.3s ease-out;
-            transition: all 0.2s ease;
-            border-radius: 6px;
-            margin-bottom: 2px;
-        }
-
-        .record-item:hover {
-            background: var(--record-hover);
-            border-left: 3px solid var(--text-color);
-        }
-
-        .record-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-
-        .record-index {
-            color: var(--accent-color);
-            font-weight: 700;
-            width: 55px;
-            text-align: left;
-            text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
-        }
-
-        .record-time {
-            font-family: 'Orbitron', monospace;
-            letter-spacing: 1px;
-            text-shadow: 0 0 5px var(--shadow-color);
-        }
-
-        .record-time .ai-micro {
-            font-size: 0.8em;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .running .integer-part {
-            animation: timeGlow 1s ease-in-out infinite alternate;
-        }
-
-        @keyframes timeGlow {
-            0% { text-shadow: 0 0 10px var(--text-color), 0 0 20px var(--text-color), 0 0 40px var(--text-color); }
-            100% { text-shadow: 0 0 20px var(--text-color), 0 0 40px var(--text-color), 0 0 80px var(--text-color); }
-        }
-
-        @media (min-width: 768px) {
-            .container { padding: 20px; }
-            .time-display { flex-direction: row; gap: 8px; }
-            .record-list-inner::-webkit-scrollbar { width: 6px; }
-            .record-list-inner::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 3px; }
-            .record-list-inner::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-        }
-
-        @media (max-width: 360px) {
-            .container { padding: 10px; }
-            .btn-group { gap: 6px; }
-            button { padding: 8px 14px; font-size: 12px; }
-        }
-    </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>云屉 · 随身文件柜</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='7' width='24' height='19' rx='4' fill='%230d7c66'/%3E%3Crect x='8' y='12' width='16' height='3' rx='1.5' fill='%23ffffff'/%3E%3Crect x='8' y='18' width='10' height='3' rx='1.5' fill='%23d8e8e4'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#16212b; --muted:#5a6b78; --line:#e2e7ec;
+  --accent:#0d7c66; --accent-deep:#0a5f4e; --accent-soft:#e2f0ec;
+  --danger:#b3402c; --danger-soft:#fbe9e4; --warn:#a06a00; --warn-soft:#fbf0d8;
+  --radius:14px; --shadow:0 8px 30px rgba(22,33,43,.08);
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;min-height:100vh;
+}
+a{color:var(--accent);text-decoration:none}
+button{font-family:inherit}
+.hidden{display:none!important}
+img{-webkit-user-drag:none;user-select:none}
+
+.shell{max-width:820px;margin:0 auto;padding:16px 16px 60px}
+header.site{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.2px}
+.brand .logo{width:30px;height:30px;flex:none}
+.brand .logo svg{display:block;width:100%;height:100%}
+.brand small{font-weight:500;color:var(--muted);font-size:12px}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line)}
+
+/* ===== 凭证卡片 ===== */
+.cred-card{padding:16px 18px;margin-bottom:18px}
+.cred-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cred-head b{font-size:14px}
+.cred-status{font-size:13px;color:var(--muted);margin-top:2px;word-break:break-all}
+.cred-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.hint-box{font-size:13px;color:var(--muted);background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.6}
+.mono{font-family:var(--mono)}
+textarea.cred-input{width:100%;min-height:74px;font-size:16px;font-family:var(--mono);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;background:#fbfcfd;color:var(--ink);outline:none}
+
+/* ===== 通用按钮 ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;border-radius:10px;font-size:14px;font-weight:600;min-height:44px;padding:10px 16px;transition:transform .08s,background .15s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-deep)}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-danger{background:var(--danger-soft);color:var(--danger)}
+.btn-danger:hover{background:#f4d8d0}
+.btn-small{min-height:44px;padding:8px 12px;font-size:12px;border-radius:8px}
+
+/* ===== 上传区 ===== */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.drop{border:2px dashed var(--line);border-radius:var(--radius);background:var(--surface);padding:34px 20px;text-align:center;color:var(--muted);cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:20px}
+.drop:hover,.drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+.drop .big{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.drop .small{font-size:13px}
+.progress{height:8px;background:var(--bg);border-radius:999px;overflow:hidden;margin:14px 0 4px;display:none}
+.progress.show{display:block}
+.progress .bar{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .2s}
+.upload-meta{font-size:12px;color:var(--muted);text-align:center;display:none;margin-bottom:8px}
+.upload-meta.show{display:block}
+
+/* ===== 文件列表 ===== */
+.files-head{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 10px}
+.files-head h2{margin:0;font-size:15px;font-weight:700}
+.count{font-size:13px;color:var(--muted)}
+.file-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(22,33,43,.04)}
+.file-ico{flex:none;width:38px;height:38px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;text-transform:uppercase}
+.file-main{flex:1;min-width:0}
+.file-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 10px}
+.expiry{font-weight:600}
+.expiry.ok{color:var(--accent)}
+.expiry.warn{color:var(--warn)}
+.expiry.late{color:var(--danger)}
+.file-actions{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.file-actions button{border:none;cursor:pointer;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600}
+.dl{background:var(--accent-soft);color:var(--accent-deep)}
+.dl:hover{background:var(--accent);color:#fff}
+.del{background:var(--danger-soft);color:var(--danger)}
+.del:hover{background:var(--danger);color:#fff}
+.empty{text-align:center;padding:44px 20px;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius);background:var(--surface)}
+.empty .ic{font-size:34px;margin-bottom:10px;opacity:.55}
+.empty p{margin:4px 0}
+.empty .tip{font-size:13px}
+
+/* ===== toast ===== */
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:88vw;text-align:center;z-index:99}
+#toast.show{opacity:.96;transform:translateX(-50%) translateY(0)}
+#toast.ok{background:var(--accent)}
+#toast.bad{background:var(--danger)}
+
+footer.site{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;padding:0 16px 30px}
+
+/* ===== 液态玻璃登录页（可拖动） ===== */
+.gate{position:fixed;inset:0;z-index:100;overflow:hidden;
+  background:linear-gradient(135deg,#ff512f,#f09819,#ffd200,#ff6b35,#ff512f);
+  background-size:400% 400%;animation:gateBg 10s ease infinite}
+@keyframes gateBg{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+
+/* 背景装饰大字，拖玻璃时能看到透过模糊 */
+.gate-bg-text{position:absolute;font-size:120px;font-weight:900;color:rgba(255,255,255,.12);pointer-events:none;user-select:none;white-space:nowrap}
+.gate-bg-text.t1{top:8%;left:-5%}
+.gate-bg-text.t2{bottom:12%;right:-5%}
+.gate-bg-text.t3{top:45%;left:30%;font-size:80px}
+
+.gate-orb{position:absolute;border-radius:50%;filter:blur(50px);opacity:.5;pointer-events:none}
+.gate-orb.o1{width:240px;height:240px;background:#ff2d2d;top:-40px;left:-30px}
+.gate-orb.o2{width:200px;height:200px;background:#ffe600;bottom:-30px;right:-20px}
+
+/* 可拖动的玻璃面板 */
+.gate-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(380px,90vw);padding:32px 26px 24px;border-radius:28px;
+  background:rgba(255,255,255,.15);
+  backdrop-filter:blur(24px) saturate(200%);-webkit-backdrop-filter:blur(24px) saturate(200%);
+  border:1.5px solid rgba(255,255,255,.4);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.6),
+    inset 0 -1px 1px rgba(255,255,255,.2),
+    0 20px 50px rgba(200,50,10,.25),
+    0 0 0 1px rgba(255,255,255,.1);
+  cursor:grab;touch-action:none;user-select:none;
+  transition:box-shadow .2s}
+.gate-box:active{cursor:grabbing}
+.gate-box.dragging{transition:none;box-shadow:
+    inset 0 1px 1px rgba(255,255,255,.7),
+    inset 0 -1px 1px rgba(255,255,255,.25),
+    0 30px 60px rgba(200,50,10,.35),
+    0 0 20px rgba(255,200,0,.3)}
+/* 边缘红黄折射光 */
+.gate-box::before{content:'';position:absolute;inset:-1.5px;border-radius:28px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,80,50,.4),transparent 30%,transparent 70%,rgba(255,220,0,.4));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;padding:1.5px}
+.gate-box.dragging::before{
+  background:linear-gradient(135deg,rgba(255,60,30,.7),rgba(255,200,0,.4) 50%,rgba(255,80,50,.6));
+  animation:refract .3s linear infinite}
+@keyframes refract{0%{filter:hue-rotate(0deg)}50%{filter:hue-rotate(20deg)}100%{filter:hue-rotate(0deg)}}
+
+.gate-drag-handle{padding:8px 0 16px;text-align:center;cursor:grab;user-select:none}
+.gate-drag-handle::after{content:'';display:block;width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.4);margin:0 auto}
+.gate-box .lock{width:52px;height:52px;margin:0 auto 12px;
+  background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(255,255,255,.4)}
+.gate-box .lock svg{width:26px;height:26px;fill:#fff}
+.gate-title{font-size:19px;font-weight:700;text-align:center;color:#fff;margin-bottom:2px;text-shadow:0 1px 8px rgba(0,0,0,.15)}
+.gate-sub{font-size:12px;color:rgba(255,255,255,.7);text-align:center;margin-bottom:18px}
+
+.gate-tabs{position:relative;display:flex;background:rgba(255,255,255,.1);border-radius:14px;padding:4px;margin-bottom:18px;border:1px solid rgba(255,255,255,.15);touch-action:none;overflow:hidden}
+.gate-tab{flex:1;text-align:center;padding:9px 0;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:rgba(255,255,255,.7);z-index:2;transition:color .2s;position:relative}
+.gate-tab.active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.2)}
+.gate-pill{position:absolute;top:4px;left:4px;width:calc(50% - 4px);height:calc(100% - 8px);
+  background:rgba(255,255,255,.25);
+  backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
+  border-radius:10px;z-index:1;
+  border:1px solid rgba(255,255,255,.4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 6px rgba(200,50,10,.15);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.gate-tabs.dragging .gate-pill{transition:none;
+  background:rgba(255,255,255,.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 12px rgba(200,50,10,.25),0 0 16px rgba(255,180,0,.3)}
+.gate-pill::after{content:'';position:absolute;inset:0;border-radius:10px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,80,40,.3),transparent 40%,transparent 60%,rgba(255,220,0,.3));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;padding:1px}
+
+.gate-box input[type=password]{width:100%;font-size:16px;padding:12px 14px;border:1px solid rgba(255,255,255,.3);border-radius:14px;outline:none;
+  background:rgba(255,255,255,.15);color:#fff;margin-top:10px;cursor:text;user-select:text}
+.gate-box input[type=password]::placeholder{color:rgba(255,255,255,.55)}
+.gate-box input[type=password]:focus{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.22)}
+.gate-err{color:#fff;font-size:13px;min-height:20px;margin-top:8px;text-align:left;background:rgba(220,50,50,.35);padding:6px 10px;border-radius:8px}
+.gate-box .btn{width:100%;margin-top:12px;background:#fff;color:#d4380d;border:none;font-weight:700;border-radius:14px;padding:13px;cursor:pointer}
+.gate-box .btn:hover{background:rgba(255,255,255,.9)}
+.gate-note{font-size:11px;color:rgba(255,255,255,.55);text-align:center;margin-top:14px}
+
+@media (max-width:560px){
+  .shell{padding:12px 12px 50px}
+  .file-actions{flex-direction:column}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
 </head>
 <body>
-    <div class="grid-bg"></div>
-    <div class="glow-bg"></div>
-    <div class="scanline"></div>
+<!-- ===== 液态玻璃登录页（可拖动） ===== -->
+<div class="gate" id="gate">
+  <div class="gate-bg-text t1">CLOUD</div>
+  <div class="gate-bg-text t2">云屉</div>
+  <div class="gate-bg-text t3">FILES</div>
+  <div class="gate-orb o1"></div><div class="gate-orb o2"></div>
+  <div class="gate-box" id="gateBox">
+    <div class="gate-drag-handle" id="dragHandle"></div>
+    <div class="lock"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9zm3 5a1.8 1.8 0 0 1 1 3.4V18a1.8 1.8 0 1 1-3.6 0v-1.6A1.8 1.8 0 0 1 12 15z"/></svg></div>
+    <div class="gate-title">云屉 · 随身文件柜</div>
+    <div class="gate-sub">登录或创建你的专属空间</div>
 
-    <div class="container">
-        <div class="header">
-            <h1 class="title">AI超极限微秒级秒表</h1>
-            <div class="ai-badge">
-                ✦ AI四重校准 · 超极限微秒级 ✦
-                <div class="ai-calibration" id="aiCalibration">AI校准完成 ✓</div>
-            </div>
-        </div>
-
-        <div class="time-section">
-            <div class="time-container">
-                <svg class="progress-ring" viewBox="0 0 400 400">
-                    <circle cx="200" cy="200" r="198"></circle>
-                    <circle class="progress" cx="200" cy="200" r="198"></circle>
-                </svg>
-
-                <div class="time-display">
-                    <div class="integer-part">
-                        <span id="day" class="time-unit">00</span>:
-                        <span id="hour" class="time-unit">00</span>:
-                        <span id="min" class="time-unit">00</span>:
-                        <span id="sec" class="time-unit">00</span>
-                    </div>
-                    <div class="decimal-part">
-                        .<span id="micro1">000</span><span id="micro2" class="ai-micro" style="display: none;">000</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="btn-section">
-            <div class="btn-group">
-                <button id="start">开始</button>
-                <button id="startPause" style="display: none;">开始</button>
-                <button id="pause" disabled>暂停</button>
-                <button id="reset">重置</button>
-                <button id="record">计次</button>
-                <button id="clearRecords">清空</button>
-                <button id="settings">设置</button>
-            </div>
-        </div>
-
-        <div class="record-section">
-            <div class="record-title">计时记录</div>
-            <div class="record-list">
-                <div class="record-list-inner" id="recordList"></div>
-            </div>
-        </div>
+    <div class="gate-tabs" id="gateTabs">
+      <div class="gate-pill" id="gatePill"></div>
+      <div class="gate-tab active" id="tabLogin">登 录</div>
+      <div class="gate-tab" id="tabRegister">注 册</div>
     </div>
 
-    <div class="settings-modal" id="settingsModal">
-        <div class="settings-content">
-            <div class="settings-header">
-                <h2 class="settings-title">设置</h2>
-                <button class="close-settings" id="closeSettings">&times;</button>
-            </div>
-
-            <div class="setting-item">
-                <span class="setting-label">深色模式</span>
-                <label class="switch">
-                    <input type="checkbox" id="darkModeSwitch" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="setting-item">
-                <span class="setting-label">开始暂停整合为一个按钮</span>
-                <label class="switch">
-                    <input type="checkbox" id="singleButtonSwitch">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="setting-item">
-                <span class="setting-label">小数位数</span>
-                <div class="decimal-select">
-                    <div class="decimal-option active" data-value="3">3位（毫秒）</div>
-                    <div class="decimal-option" data-value="6">6位（微秒）</div>
-                </div>
-            </div>
-
-            <div class="setting-item">
-                <span class="setting-label">AI精度等级</span>
-                <div class="ai-precision-select">
-                    <div class="ai-precision-option" data-value="1">标准</div>
-                    <div class="ai-precision-option" data-value="2">高精度</div>
-                    <div class="ai-precision-option" data-value="3">极限</div>
-                    <div class="ai-precision-option active" data-value="4">超极限</div>
-                </div>
-            </div>
-        </div>
+    <div id="loginPane">
+      <input type="password" id="gatePw" placeholder="输入访问凭证" autocomplete="current-password">
+      <div class="gate-err" id="loginErr"></div>
+      <button class="btn" id="loginBtn" type="button">登 录</button>
     </div>
 
-    <script>
-        const dayDom = document.getElementById('day');
-        const hourDom = document.getElementById('hour');
-        const minDom = document.getElementById('min');
-        const secDom = document.getElementById('sec');
-        const micro1Dom = document.getElementById('micro1');
-        const micro2Dom = document.getElementById('micro2');
-        const startBtn = document.getElementById('start');
-        const startPauseBtn = document.getElementById('startPause');
-        const pauseBtn = document.getElementById('pause');
-        const resetBtn = document.getElementById('reset');
-        const recordBtn = document.getElementById('record');
-        const clearRecordsBtn = document.getElementById('clearRecords');
-        const settingsBtn = document.getElementById('settings');
-        const recordList = document.getElementById('recordList');
-        const body = document.body;
-        const progressCircle = document.querySelector('.progress');
-        const settingsModal = document.getElementById('settingsModal');
-        const closeSettingsBtn = document.getElementById('closeSettings');
-        const darkModeSwitch = document.getElementById('darkModeSwitch');
-        const singleButtonSwitch = document.getElementById('singleButtonSwitch');
-        const decimalOptions = document.querySelectorAll('.decimal-option');
-        const aiPrecisionOptions = document.querySelectorAll('.ai-precision-option');
-        const aiCalibrationDom = document.getElementById('aiCalibration');
+    <div id="registerPane" class="hidden">
+      <input type="password" id="regPw1" placeholder="设置访问凭证（至少4位）" autocomplete="new-password">
+      <input type="password" id="regPw2" placeholder="再输一次确认" autocomplete="new-password">
+      <div class="gate-err" id="regErr"></div>
+      <button class="btn" id="regBtn" type="button">注册并进入</button>
+    </div>
 
-        let settings = {
-            darkMode: true,
-            singleButton: false,
-            decimalPlaces: 3,
-            aiPrecision: 4 // 新增4=超极限模式
-        };
+    <div class="gate-note">按住顶部小横条可以拖动玻璃</div>
+  </div>
+</div>
 
-        let startTime = 0;
-        let totalElapsed = 0;
-        let animationId = null;
-        let isRunning = false;
-        let recordCount = 1;
-        let lastRecordTimestamp = 0; // 新增：记录上一次计次的时间戳
-        let lastValues = { day: '00', hour: '00', min: '00', sec: '00', micro1: '000', micro2: '000' };
-        
-        // ==========================================
-        // 🤖 AI四重时间校准引擎 V3.0（新增超极限模式）
-        // ==========================================
-        const aiTimeEngine = {
-            frameHistory: [],
-            maxHistoryLength: 80,
-            clockDrift: 0,
-            lastSyncTime: 0,
-            predictionWeight: 0.95,
-            frameInterval: 16.6667,
-            
-            // 超极限模式：时间戳插值算法
-            interpolationCounter: 0,
-            lastBaseTime: 0,
-            
-            precisionConfig: {
-                1: { historyLength: 20, predictionWeight: 0.5, syncInterval: 1000 },
-                2: { historyLength: 40, predictionWeight: 0.7, syncInterval: 500 },
-                3: { historyLength: 60, predictionWeight: 0.9, syncInterval: 200 },
-                4: { historyLength: 80, predictionWeight: 0.95, syncInterval: 100 } // 超极限配置
-            },
-            
-            init() {
-                this.frameHistory = [];
-                this.clockDrift = 0;
-                this.lastSyncTime = performance.now();
-                this.interpolationCounter = 0;
-                this.lastBaseTime = 0;
-                this.updateConfig();
-                aiCalibrationDom.textContent = 'AI超极限校准完成 ✓';
-            },
-            
-            updateConfig() {
-                const config = this.precisionConfig[settings.aiPrecision];
-                this.maxHistoryLength = config.historyLength;
-                this.predictionWeight = config.predictionWeight;
-                this.frameHistory = this.frameHistory.slice(-this.maxHistoryLength);
-            },
-            
-            recordFrame(currentTime) {
-                if (this.frameHistory.length > 0) {
-                    const lastFrame = this.frameHistory[this.frameHistory.length - 1];
-                    const actualInterval = currentTime - lastFrame.time;
-                    this.frameInterval = this.frameInterval * 0.95 + actualInterval * 0.05;
-                    
-                    this.frameHistory.push({
-                        time: currentTime,
-                        interval: actualInterval,
-                        error: actualInterval - this.frameInterval
-                    });
-                    
-                    if (this.frameHistory.length > this.maxHistoryLength) {
-                        this.frameHistory.shift();
-                    }
-                    
-                    const config = this.precisionConfig[settings.aiPrecision];
-                    if (currentTime - this.lastSyncTime > config.syncInterval) {
-                        this.syncClock(currentTime);
-                    }
-                } else {
-                    this.frameHistory.push({
-                        time: currentTime,
-                        interval: 0,
-                        error: 0
-                    });
-                }
-            },
-            
-            syncClock(currentTime) {
-                if (this.frameHistory.length < 10) return;
-                const theoreticalElapsed = this.frameHistory.length * this.frameInterval;
-                const actualElapsed = currentTime - this.frameHistory[0].time;
-                this.clockDrift = (actualElapsed - theoreticalElapsed) / this.frameHistory.length;
-                this.lastSyncTime = currentTime;
-                const driftMs = Math.abs(this.clockDrift * 1000).toFixed(3);
-                aiCalibrationDom.textContent = `AI超极限 · 漂移: ${driftMs}μs/帧`;
-            },
-            
-            getAccurateTime(baseTime) {
-                if (this.frameHistory.length < 5) return baseTime;
-                
-                let avgInterval = 0;
-                let weightSum = 0;
-                for (let i = 0; i < Math.min(10, this.frameHistory.length); i++) {
-                    const weight = 1 - (i / 10);
-                    avgInterval += this.frameHistory[this.frameHistory.length - 1 - i].interval * weight;
-                    weightSum += weight;
-                }
-                avgInterval /= weightSum;
-                
-                const predictedNextFrameTime = this.frameHistory[this.frameHistory.length - 1].time + avgInterval;
-                const timeDiff = predictedNextFrameTime - baseTime;
-                
-                const compensatedTime = baseTime + 
-                    timeDiff * this.predictionWeight + 
-                    this.clockDrift * this.frameHistory.length;
-                
-                // 超极限模式：时间戳插值
-                if (settings.aiPrecision === 4) {
-                    if (compensatedTime === this.lastBaseTime) {
-                        this.interpolationCounter++;
-                        // 同一帧内的不同点击，每次增加0.1微秒，强制区分
-                        return compensatedTime + (this.interpolationCounter * 0.1);
-                    } else {
-                        this.interpolationCounter = 0;
-                        this.lastBaseTime = compensatedTime;
-                        return compensatedTime;
-                    }
-                }
-                
-                return compensatedTime;
-            },
-            
-            reset() {
-                this.frameHistory = [];
-                this.clockDrift = 0;
-                this.lastSyncTime = 0;
-                this.frameInterval = 16.6667;
-                this.interpolationCounter = 0;
-                this.lastBaseTime = 0;
-                aiCalibrationDom.textContent = 'AI超极限校准完成 ✓';
-            }
-        };
+<div class="shell">
+  <header class="site">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="7" width="24" height="19" rx="4" fill="#0d7c66"/><rect x="8" y="12" width="16" height="3" rx="1.5" fill="#ffffff"/><rect x="8" y="18" width="10" height="3" rx="1.5" fill="#d8e8e4"/></svg></span>
+      <span>云屉 <small>随身文件柜 · GoFile</small></span>
+    </div>
+    <button class="btn btn-ghost btn-small" id="logoutBtn" type="button" style="min-height:36px">退出</button>
+  </header>
 
-        function loadSettings() {
-            const savedSettings = localStorage.getItem('stopwatchSettings');
-            if (savedSettings) settings = { ...settings, ...JSON.parse(savedSettings) };
-            applySettings();
-        }
+  <main id="view"></main>
+  <footer class="site">文件保存 6 个月自动删除 · 存储由 GoFile.io 免费提供 · 链接公开，请勿存隐私敏感文件</footer>
+</div>
+<div id="toast" role="status"></div>
 
-        function saveSettings() {
-            localStorage.setItem('stopwatchSettings', JSON.stringify(settings));
-        }
+<script>
+"use strict";
+/* ================= 常量与状态 ================= */
+const GF_API = 'https://api.gofile.io';
+const GF_UPLOAD = 'https://upload.gofile.io/uploadfile';
+const MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000; // 6 个月
 
-        function applySettings() {
-            if (settings.darkMode) {
-                body.classList.remove('light-mode');
-                darkModeSwitch.checked = true;
-            } else {
-                body.classList.add('light-mode');
-                darkModeSwitch.checked = false;
-            }
+const store = {
+  get token(){ return localStorage.getItem('yb_token') || ''; }, set token(v){ v ? localStorage.setItem('yb_token',v) : localStorage.removeItem('yb_token'); },
+  get folderId(){ return localStorage.getItem('yb_folder') || ''; }, set folderId(v){ v ? localStorage.setItem('yb_folder',v) : localStorage.removeItem('yb_folder'); },
+  get expiresAt(){ return Number(localStorage.getItem('yb_expires') || 0); }, set expiresAt(v){ v ? localStorage.setItem('yb_expires',String(v)) : localStorage.removeItem('yb_expires'); },
+  get records(){ try{ return JSON.parse(localStorage.getItem('yb_files') || '[]'); }catch(e){ return []; } },
+  set records(v){ localStorage.setItem('yb_files', JSON.stringify(v)); }
+};
 
-            if (settings.singleButton) {
-                startBtn.style.display = 'none';
-                pauseBtn.style.display = 'none';
-                startPauseBtn.style.display = 'block';
-                singleButtonSwitch.checked = true;
-                updateSingleButtonText();
-            } else {
-                startBtn.style.display = 'block';
-                pauseBtn.style.display = 'block';
-                startPauseBtn.style.display = 'none';
-                singleButtonSwitch.checked = false;
-                updateDoubleButtons();
-            }
+const state = {
+  token: store.token, folderId: store.folderId, expiresAt: store.expiresAt,
+  records: store.records
+};
 
-            decimalOptions.forEach(option => {
-                option.classList.remove('active');
-                if (parseInt(option.dataset.value) === settings.decimalPlaces) {
-                    option.classList.add('active');
-                }
-            });
-            
-            micro2Dom.style.display = settings.decimalPlaces === 6 ? 'inline' : 'none';
+const view = document.getElementById('view');
+const toastEl = document.getElementById('toast');
 
-            aiPrecisionOptions.forEach(option => {
-                option.classList.remove('active');
-                if (parseInt(option.dataset.value) === settings.aiPrecision) {
-                    option.classList.add('active');
-                }
-            });
-            aiTimeEngine.updateConfig();
-        }
+/* 访问凭证锁：导出发布版时脚本会把 locked 改成 true 并写入 pwHash */
+const LOCK_CONFIG = { locked:false, pwHash:'' };
+let toastTimer = null;
+function toast(msg, kind){ toastEl.textContent=msg; toastEl.className=kind?'show '+kind:'show'; clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.className='',3000); }
 
-        function updateSingleButtonText() {
-            if (isRunning) {
-                startPauseBtn.textContent = '暂停';
-                startPauseBtn.style.color = '#ffff00';
-                startPauseBtn.style.borderColor = '#ffff00';
-            } else {
-                startPauseBtn.textContent = '开始';
-                startPauseBtn.style.color = '#00ff00';
-                startPauseBtn.style.borderColor = '#00ff00';
-            }
-        }
+/* ================= 界面渲染 ================= */
+function render(){
+  view.innerHTML = `
+    <div class="card cred-card">
+      <div class="cred-head">
+        <div>
+          <b>${state.token ? '已连接凭证' : '凭证：首次上传自动创建'}</b>
+          <div class="cred-status">${state.token ? '令牌 ' + esc(state.token.slice(0,12)) + '… · 文件夹到期 ' + new Date(state.expiresAt).toLocaleDateString() : '不用注册，第一次上传文件时系统会自动生成你的专属凭证。'}</div>
+        </div>
+        <button class="btn btn-ghost btn-small" id="toggleCred" type="button">${state.token ? '凭证管理' : '了解更多'}</button>
+      </div>
+      <div id="credMore" class="hidden">
+        <div class="hint-box">凭证 = 你的“钥匙”：有了它才能管理（删除）已上传的文件。换设备时把下面“复制凭证”的内容粘贴到另一台设备的“粘贴凭证”里即可。Guest 凭证丢失无法找回，请备份好。</div>
+        <textarea class="cred-input" id="credText" placeholder="在这里粘贴另一台设备的凭证…"></textarea>
+        <div class="cred-actions">
+          <button class="btn btn-ghost btn-small" id="copyCred" type="button">复制凭证</button>
+          <button class="btn btn-ghost btn-small" id="pasteCred" type="button">粘贴凭证</button>
+          <button class="btn btn-danger btn-small" id="clearCred" type="button">清除凭证</button>
+        </div>
+        <div class="hint-box" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
+          <b>发布到 GitHub：</b>设好访问凭证后，点下方按钮下载带密码锁的版本，把它传到 GitHub。访客打开必须输密码才能进。
+        </div>
+        <div class="cred-actions">
+          <button class="btn btn-primary btn-small" id="exportLockedBtn" type="button">生成发布版</button>
+        </div>
+      </div>
+    </div>
 
-        function updateDoubleButtons() {
-            if (isRunning) {
-                startBtn.disabled = true;
-                pauseBtn.disabled = false;
-            } else {
-                startBtn.disabled = false;
-                pauseBtn.disabled = true;
-            }
-        }
+    <div class="toolbar">
+      <button class="btn btn-primary" id="pickBtn" type="button">＋ 上传文件</button>
+      <button class="btn btn-ghost" id="copyAllBtn" type="button">复制全部链接</button>
+      <button class="btn btn-ghost" id="exportBtn" type="button">导出清单</button>
+      <button class="btn btn-ghost" id="importBtn" type="button">导入清单</button>
+      <input type="file" id="importInput" accept=".json,.txt" hidden>
+    </div>
 
-        function pad(num, length = 2) {
-            return num.toString().padStart(length, '0');
-        }
+    <div class="drop" id="drop">
+      <div class="big">点击选择，或把文件拖进来</div>
+      <div class="small">支持所有文件类型：照片、PDF、Word、zip、视频、音频…手机上选文件时切到"文件/浏览"标签即可</div>
+    </div>
+    <input type="file" id="fileInput" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;left:-9999px">
+    <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
+    <div class="upload-meta" id="upMeta"></div>
 
-        let lastSecond = -1;
-        function updateProgress(seconds) {
-            const currentSecond = Math.floor(seconds);
-            if (currentSecond !== lastSecond) {
-                const circumference = 2 * Math.PI * 198;
-                const offset = circumference - (seconds % 60) / 60 * circumference;
-                progressCircle.style.strokeDashoffset = offset;
-                lastSecond = currentSecond;
-            }
-        }
+    <div class="files-head"><h2>本机文件记录</h2><span class="count" id="fileCount">0 个</span></div>
+    <div id="fileList"></div>`;
 
-        function updateNumber(element, newValue) {
-            if (element.textContent !== newValue) {
-                element.classList.remove('changing');
-                void element.offsetWidth;
-                element.classList.add('changing');
-                element.textContent = newValue;
-            }
-        }
+  document.getElementById('pickBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
+  document.getElementById('copyAllBtn').addEventListener('click', copyAllLinks);
+  document.getElementById('exportBtn').addEventListener('click', exportList);
+  document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importInput').click());
+  const imp = document.getElementById('importInput');
+  imp.addEventListener('change', ()=>{ if(imp.files[0]) importList(imp.files[0]); imp.value=''; });
 
-        function renderTime() {
-            if (!isRunning && totalElapsed === 0) return;
-            const now = performance.now();
-            aiTimeEngine.recordFrame(now);
-            const accurateNow = aiTimeEngine.getAccurateTime(now);
-            const elapsed = accurateNow - startTime + totalElapsed;
+  const toggle = document.getElementById('toggleCred');
+  toggle.addEventListener('click', ()=> document.getElementById('credMore').classList.toggle('hidden'));
+  document.getElementById('copyCred').addEventListener('click', copyCred);
+  document.getElementById('pasteCred').addEventListener('click', pasteCred);
+  document.getElementById('clearCred').addEventListener('click', clearCred);
+  document.getElementById('exportLockedBtn').addEventListener('click', exportLocked);
+  document.getElementById('logoutBtn').addEventListener('click', ()=>{
+    if(confirm('退出后需要重新输入访问凭证才能进入，确定？')){
+      sessionStorage.removeItem('yb_unlocked');
+      location.reload();
+    }
+  });
 
-            const days = Math.floor(elapsed / 86400000);
-            const hours = Math.floor((elapsed % 86400000) / 3600000);
-            const minutes = Math.floor((elapsed % 3600000) / 60000);
-            const seconds = Math.floor((elapsed % 60000) / 1000);
-            
-            const totalMicroseconds = Math.round(elapsed * 1000);
-            const microseconds = totalMicroseconds % 1000000;
-            const microStr = pad(microseconds, 6);
-            const micro1 = microStr.substring(0, 3);
-            const micro2 = microStr.substring(3, 6);
+  const input = document.getElementById('fileInput');
+  input.addEventListener('change', ()=>{ if(input.files[0]) doUpload(input.files[0]); input.value=''; });
+  const drop = document.getElementById('drop');
+  drop.addEventListener('click', ()=> input.click());
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) doUpload(f); });
 
-            updateNumber(dayDom, pad(days));
-            updateNumber(hourDom, pad(hours));
-            updateNumber(minDom, pad(minutes));
-            updateNumber(secDom, pad(seconds));
-            updateNumber(micro1Dom, micro1);
-            if (settings.decimalPlaces === 6) updateNumber(micro2Dom, micro2);
+  pruneExpired();
+  renderList();
+}
 
-            updateProgress(elapsed / 1000);
+/* ================= 文件列表 ================= */
+function fmtSize(n){ if(n==null) return ''; const u=['B','KB','MB','GB']; let i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return (i===0?n:n.toFixed(1))+' '+u[i]; }
+function extName(name){ const m=/\.([a-z0-9]{1,6})$/i.exec(name); return m?m[1].slice(0,4):'FILE'; }
+function daysLeft(exp){ return Math.ceil((exp-Date.now())/86400000); }
 
-            lastValues = { 
-                day: pad(days), hour: pad(hours), min: pad(minutes), sec: pad(seconds), micro1, micro2 
-            };
-        }
+function pruneExpired(){
+  // 超过 6 个月的记录：尝试用凭证删除远端文件，然后移出本机列表
+  let changed=false;
+  state.records = state.records.filter(r=>{
+    if(r.expiresAt && r.expiresAt <= Date.now()){
+      if(state.token) apiDelete(r.id); // 尽力而为
+      changed=true; return false;
+    }
+    return true;
+  });
+  if(changed) saveRecords();
+}
 
-        function timerLoop() {
-            if (!isRunning) return;
-            renderTime();
-            animationId = requestAnimationFrame(timerLoop);
-        }
+function renderList(){
+  const listEl=document.getElementById('fileList');
+  const cntEl=document.getElementById('fileCount');
+  cntEl.textContent=state.records.length+' 个';
+  if(state.records.length===0){
+    listEl.innerHTML='<div class="empty"><div class="ic">▯</div><p>这里还空着</p><p class="tip">上传一个文件试试，文件保存 6 个月</p></div>';
+    return;
+  }
+  listEl.innerHTML='';
+  state.records.forEach(r=>listEl.appendChild(fileRow(r)));
+}
 
-        function startTimer() {
-            if (isRunning) return;
-            isRunning = true;
-            startTime = performance.now();
-            aiTimeEngine.reset();
-            aiTimeEngine.init();
-            timerLoop();
-            updateSingleButtonText();
-            updateDoubleButtons();
-            body.classList.add('running');
-        }
+function fileRow(r){
+  const row=document.createElement('div'); row.className='file-row';
+  const dl=daysLeft(r.expiresAt||Date.now()+MAX_AGE_MS);
+  const expCls=dl<0?'late':(dl<=30?'warn':'ok');
+  const expTxt=dl<0?'已过期':('剩 '+dl+' 天');
 
-        function pauseTimer() {
-            if (!isRunning) return;
-            isRunning = false;
-            cancelAnimationFrame(animationId);
-            const accurateNow = aiTimeEngine.getAccurateTime(performance.now());
-            totalElapsed += accurateNow - startTime;
-            updateSingleButtonText();
-            updateDoubleButtons();
-            body.classList.remove('running');
-            aiCalibrationDom.textContent = 'AI超极限校准完成 ✓';
-        }
+  const nameEl=document.createElement('div'); nameEl.className='file-main';
+  const nm=document.createElement('div'); nm.className='file-name'; nm.textContent=r.name; nm.title=r.name;
+  const mt=document.createElement('div'); mt.className='file-meta';
+  mt.innerHTML='<span>'+fmtSize(r.size)+'</span><span>上传于 '+esc(new Date(r.uploadedAt).toLocaleDateString())+'</span><span class="expiry '+expCls+'">'+expTxt+'</span>';
+  nameEl.appendChild(nm); nameEl.appendChild(mt);
 
-        function resetTimer() {
-            isRunning = false;
-            cancelAnimationFrame(animationId);
-            startTime = 0;
-            totalElapsed = 0;
-            recordCount = 1;
-            lastSecond = -1;
-            lastRecordTimestamp = 0;
-            dayDom.textContent = '00';
-            hourDom.textContent = '00';
-            minDom.textContent = '00';
-            secDom.textContent = '00';
-            micro1Dom.textContent = '000';
-            micro2Dom.textContent = '000';
-            aiTimeEngine.reset();
-            progressCircle.style.strokeDashoffset = 1256;
-            updateSingleButtonText();
-            updateDoubleButtons();
-            body.classList.remove('running');
-        }
+  const act=document.createElement('div'); act.className='file-actions';
+  const copy=document.createElement('button'); copy.className='dl'; copy.textContent='复制链接'; copy.type='button';
+  copy.addEventListener('click', ()=> copyLink(r));
+  const open=document.createElement('button'); open.className='dl'; open.textContent='打开'; open.type='button';
+  open.addEventListener('click', ()=>{ if(r.link) window.open(r.link,'_blank'); else toast('没有链接','bad'); });
+  const del=document.createElement('button'); del.className='del'; del.textContent='删除'; del.type='button';
+  del.addEventListener('click', ()=> removeFile(r));
+  act.appendChild(copy); act.appendChild(open); act.appendChild(del);
 
-        function addRecord() {
-            if (totalElapsed === 0 && !isRunning) return;
-            
-            // 超极限模式：强制区分同一帧内的多次点击
-            let timeText;
-            if (settings.aiPrecision === 4) {
-                // 获取当前时间戳，即使和上一次一样，也会被插值算法强制加0.1微秒
-                const now = performance.now();
-                const accurateNow = aiTimeEngine.getAccurateTime(now);
-                const elapsed = accurateNow - startTime + totalElapsed;
-                
-                const totalMicroseconds = Math.round(elapsed * 1000);
-                const microseconds = totalMicroseconds % 1000000;
-                const microStr = pad(microseconds, 6);
-                
-                const day = pad(Math.floor(elapsed / 86400000));
-                const hour = pad(Math.floor((elapsed % 86400000) / 3600000));
-                const min = pad(Math.floor((elapsed % 3600000) / 60000));
-                const sec = pad(Math.floor((elapsed % 60000) / 1000));
-                
-                if (settings.decimalPlaces === 3) {
-                    timeText = `${day}:${hour}:${min}:${sec}.${microStr.substring(0, 3)}`;
-                } else {
-                    timeText = `${day}:${hour}:${min}:${sec}.${microStr.substring(0, 3)}<span class="ai-micro">${microStr.substring(3, 6)}</span>`;
-                }
-            } else {
-                if (settings.decimalPlaces === 3) {
-                    timeText = `${lastValues.day}:${lastValues.hour}:${lastValues.min}:${lastValues.sec}.${lastValues.micro1}`;
-                } else {
-                    timeText = `${lastValues.day}:${lastValues.hour}:${lastValues.min}:${lastValues.sec}.${lastValues.micro1}<span class="ai-micro">${lastValues.micro2}</span>`;
-                }
-            }
-            
-            const recordItem = document.createElement('div');
-            recordItem.className = 'record-item';
-            recordItem.innerHTML = `
-                <span class="record-index">第${recordCount}次</span>
-                <span class="record-time">${timeText}</span>
-            `;
-            recordList.appendChild(recordItem);
-            recordList.scrollTop = recordList.scrollHeight;
-            recordCount++;
-        }
+  const ico=document.createElement('div'); ico.className='file-ico'; ico.textContent=extName(r.name);
+  row.appendChild(ico); row.appendChild(nameEl); row.appendChild(act);
+  return row;
+}
 
-        function clearAllRecords() {
-            recordList.innerHTML = '';
-            recordCount = 1;
-        }
+/* ================= 上传 ================= */
+function doUpload(file){
+  const bar=document.getElementById('bar'), prog=document.getElementById('progress'), meta=document.getElementById('upMeta');
+  prog.classList.add('show'); meta.classList.add('show');
+  meta.textContent='上传中：'+file.name; bar.style.width='0%';
 
-        function openSettings() {
-            settingsModal.classList.add('active');
-        }
+  const fd=new FormData();
+  fd.append('file',file);
+  if(state.token) fd.append('token',state.token);
+  if(state.folderId) fd.append('folderId',state.folderId);
 
-        function closeSettings() {
-            settingsModal.classList.remove('active');
-        }
+  const xhr=new XMLHttpRequest();
+  xhr.open('POST', GF_UPLOAD);
+  xhr.upload.onprogress=e=>{ if(e.lengthComputable) bar.style.width=Math.round(e.loaded/e.total*100)+'%'; };
+  xhr.onload=()=>{
+    prog.classList.remove('show'); meta.classList.remove('show');
+    let res=null; try{ res=JSON.parse(xhr.responseText); }catch(e){}
+    if(res && res.status==='ok' && res.data){
+      const d=res.data;
+      if(d.guestToken && !state.token){ // 首次上传：拿到凭证与文件夹
+        state.token=d.guestToken; state.folderId=d.parentFolder;
+        state.expiresAt=Date.now()+MAX_AGE_MS;
+        store.token=state.token; store.folderId=state.folderId; store.expiresAt=state.expiresAt;
+        setFolderExpiry(); // 让 GoFile 在 6 个月后自动删掉整个文件夹
+        updateCredUI();
+      }
+      const rec={ id:d.id, name:d.name||file.name, size:d.size||file.size,
+        link:d.downloadPage||('https://gofile.io/d/'+d.code),
+        uploadedAt:Date.now(), expiresAt:state.expiresAt||(Date.now()+MAX_AGE_MS) };
+      state.records=[rec].concat(state.records); saveRecords();
+      toast('上传成功'); renderList();
+    } else {
+      const msg=(res&&res.status==='error-limits')?'存储数量已达 GoFile 免费上限':'上传失败('+xhr.status+')';
+      toast(msg,'bad');
+    }
+  };
+  xhr.onerror=()=>{ prog.classList.remove('show'); meta.classList.remove('show'); toast('网络错误，上传失败','bad'); };
+  xhr.send(fd);
+}
 
-        startBtn.addEventListener('click', startTimer);
-        pauseBtn.addEventListener('click', pauseTimer);
-        startPauseBtn.addEventListener('click', () => isRunning ? pauseTimer() : startTimer());
-        resetBtn.addEventListener('click', resetTimer);
-        recordBtn.addEventListener('click', addRecord);
-        clearRecordsBtn.addEventListener('click', clearAllRecords);
-        settingsBtn.addEventListener('click', openSettings);
-        closeSettingsBtn.addEventListener('click', closeSettings);
+// 尽力而为：给首次上传创建的文件夹设置 6 个月过期，让 GoFile 到点自动删除
+async function setFolderExpiry(){
+  if(!state.token || !state.folderId) return;
+  const expSec=Math.floor(state.expiresAt/1000);
+  try{
+    await fetch(GF_API+'/contents/'+encodeURIComponent(state.folderId)+'/update',{
+      method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
+      body:JSON.stringify({attribute:'expiry', attributeValue:expSec})
+    });
+  }catch(e){ /* 网络失败不阻塞上传 */ }
+}
 
-        settingsModal.addEventListener('click', (e) => {
-            if (e.target === settingsModal) closeSettings();
-        });
+/* ================= 删除 / 复制 / 导出 ================= */
+async function removeFile(r){
+  if(!confirm('确定删除「'+r.name+'」？删除后无法恢复。')) return;
+  if(state.token){
+    try{
+      const ok=await apiDelete(r.id);
+      if(!ok){ toast('远端删除失败，可能凭证失效','bad'); }
+    }catch(e){ toast('远端删除失败：'+e.message,'bad'); }
+  } else {
+    toast('无凭证，仅从本机记录移除（文件链接仍有效）','bad');
+  }
+  state.records=state.records.filter(x=>x.id!==r.id);
+  saveRecords(); renderList(); toast('已删除');
+}
 
-        darkModeSwitch.addEventListener('change', () => {
-            settings.darkMode = darkModeSwitch.checked;
-            applySettings();
-            saveSettings();
-        });
+async function apiDelete(id){
+  const res=await fetch(GF_API+'/contents',{
+    method:'DELETE', headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
+    body:JSON.stringify({contentsId:id})
+  });
+  const d=await res.json();
+  return d && d.status==='ok';
+}
 
-        singleButtonSwitch.addEventListener('change', () => {
-            settings.singleButton = singleButtonSwitch.checked;
-            applySettings();
-            saveSettings();
-        });
+function copyLink(r){
+  const txt=r.link||('https://gofile.io/d/'+r.code);
+  copyText(txt, '链接已复制');
+}
+function copyAllLinks(){
+  if(!state.records.length){ toast('还没有文件','bad'); return; }
+  const txt=state.records.map(r=>r.name+'  '+daysLeft(r.expiresAt||Date.now()+MAX_AGE_MS)+'天\n'+r.link).join('\n\n');
+  copyText(txt,'全部链接已复制');
+}
 
-        decimalOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                settings.decimalPlaces = parseInt(option.dataset.value);
-                applySettings();
-                saveSettings();
-                if (!isRunning && totalElapsed === 0) {
-                    micro1Dom.textContent = '000';
-                    micro2Dom.textContent = '000';
-                }
-            });
-        });
+function copyText(txt, okMsg){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast(okMsg)).catch(()=>fallbackCopy(txt,okMsg));
+  } else fallbackCopy(txt,okMsg);
+}
+function fallbackCopy(txt,okMsg){
+  const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast(okMsg); }catch(e){ toast('复制失败，请手动复制','bad'); }
+  ta.remove();
+}
 
-        aiPrecisionOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                settings.aiPrecision = parseInt(option.dataset.value);
-                applySettings();
-                saveSettings();
-            });
-        });
+/* ================= 凭证 ================= */
+function copyCred(){
+  const data={token:state.token, folderId:state.folderId, expiresAt:state.expiresAt};
+  copyText(JSON.stringify(data), state.token?'凭证已复制':'还没有凭证，请先上传一个文件');
+}
+function pasteCred(){
+  const val=document.getElementById('credText').value.trim();
+  if(!val){ toast('请先粘贴凭证内容','bad'); return; }
+  try{
+    const d=JSON.parse(val);
+    if(!d.token){ throw new Error('no token'); }
+    state.token=d.token; state.folderId=d.folderId||''; state.expiresAt=Number(d.expiresAt)||0;
+    store.token=state.token; store.folderId=state.folderId; store.expiresAt=state.expiresAt;
+    toast('凭证已生效'); render();
+  }catch(e){ toast('凭证格式不对，请检查','bad'); }
+}
+function clearCred(){
+  if(!state.token){ toast('当前没有凭证','bad'); return; }
+  if(!confirm('清除凭证？之后将无法再删除已上传的文件（链接仍有效）。')) return;
+  state.token=''; state.folderId=''; state.expiresAt=0;
+  store.token=''; store.folderId=''; store.expiresAt=0;
+  toast('凭证已清除'); render();
+}
 
-        document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT') return;
-            switch(e.code) {
-                case 'Space':
-                    e.preventDefault();
-                    isRunning ? pauseTimer() : startTimer();
-                    break;
-                case 'KeyR':
-                    e.preventDefault();
-                    resetTimer();
-                    break;
-                case 'KeyL':
-                    e.preventDefault();
-                    addRecord();
-                    break;
-                case 'Escape':
-                    e.preventDefault();
-                    closeSettings();
-                    break;
-            }
-        });
+/* ================= 清单导入导出 ================= */
+function exportList(){
+  if(!state.records.length){ toast('还没有文件','bad'); return; }
+  const data={token:state.token, folderId:state.folderId, expiresAt:state.expiresAt, files:state.records};
+  copyText(JSON.stringify(data), '清单已复制（含凭证，可粘贴到另一台设备）');
+}
+function importList(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const d=JSON.parse(reader.result);
+      if(Array.isArray(d.files)){
+        if(d.token && !state.token){ state.token=d.token; state.folderId=d.folderId||''; state.expiresAt=Number(d.expiresAt)||0; store.token=state.token; store.folderId=state.folderId; store.expiresAt=state.expiresAt; }
+        state.records=d.files.concat(state.records);
+        saveRecords(); render(); toast('清单已导入');
+      } else if(Array.isArray(d)){
+        state.records=d.concat(state.records); saveRecords(); renderList(); toast('清单已导入');
+      } else throw new Error('bad');
+    }catch(e){ toast('清单格式不对','bad'); }
+  };
+  reader.readAsText(file);
+}
 
-        loadSettings();
-        aiTimeEngine.init();
-        resetTimer();
-    </script>
+function saveRecords(){ state.records=state.records.slice(0,10000); store.records=state.records; }
+
+/* ================= 凭证状态即时更新 ================= */
+function updateCredUI(){
+  const st=document.querySelector('.cred-status');
+  if(st) st.textContent=state.token
+    ? ('令牌 '+esc(state.token.slice(0,12))+'… · 文件夹到期 '+(state.expiresAt?new Date(state.expiresAt).toLocaleDateString():'-'))
+    : '不用注册，第一次上传文件时系统会自动生成你的专属凭证。';
+  const tg=document.getElementById('toggleCred');
+  if(tg) tg.textContent=state.token?'凭证管理':'了解更多';
+}
+
+/* ================= 辅助 ================= */
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ================= 安全锁（视觉层，非真正加密） ================= */
+document.addEventListener('contextmenu', e=>e.preventDefault());
+document.addEventListener('keydown', e=>{
+  const k=e.key;
+  const blocked=(k==='F12')||((e.ctrlKey||e.metaKey)&&['u','U','i','I','j','J','c','C','s','S'].includes(k))||((e.ctrlKey||e.metaKey)&&e.shiftKey&&['i','I','j','J','c','C'].includes(k));
+  if(blocked) e.preventDefault();
+});
+document.addEventListener('dragstart', e=>{ if(e.target.tagName==='IMG') e.preventDefault(); });
+
+/* ================= 凭证登录门 ================= */
+/* 简单哈希（防君子不防小人，不是密码学安全） */
+function simpleHash(s){
+  let h=5381;
+  for(let i=0;i<s.length;i++){ h=((h<<5)+h)^s.charCodeAt(i); }
+  return (h>>>0).toString(36);
+}
+
+function initGate(){
+  const gate=document.getElementById('gate');
+  const box=document.getElementById('gateBox');
+
+  // ===== 玻璃拖动 =====
+  const dragHandle=document.getElementById('dragHandle');
+  let dragging=false, startX=0, startY=0, origX=0, origY=0, lastMoveT=0, lastDX=0;
+  function onDown(e){
+    dragging=true; box.classList.add('dragging');
+    const pt=e.touches?e.touches[0]:e;
+    startX=pt.clientX; startY=pt.clientY;
+    const rect=box.getBoundingClientRect();
+    origX=rect.left+rect.width/2; origY=rect.top+rect.height/2;
+    lastMoveT=Date.now();
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const pt=e.touches?e.touches[0]:e;
+    const dx=pt.clientX-startX, dy=pt.clientY-startY;
+    const now=Date.now();
+    const dt=now-lastMoveT;
+    const speed=dt>0?Math.abs(dx-lastDX)/dt:0;
+    lastDX=dx; lastMoveT=now;
+    // 快拖时压扁
+    const squash=Math.min(speed*2,0.08);
+    box.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${1-squash}, ${1+squash})`;
+  }
+  function onUp(){
+    if(!dragging) return;
+    dragging=false; box.classList.remove('dragging');
+    // 弹回中心
+    box.style.transition='transform .4s cubic-bezier(.34,1.56,.64,1)';
+    box.style.transform='translate(-50%,-50%)';
+    setTimeout(()=>{ box.style.transition=''; },400);
+  }
+  dragHandle.addEventListener('mousedown', onDown);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  dragHandle.addEventListener('touchstart', onDown, {passive:false});
+  document.addEventListener('touchmove', onMove, {passive:false});
+  document.addEventListener('touchend', onUp);
+
+  const tabLogin=document.getElementById('tabLogin');
+  const tabReg=document.getElementById('tabRegister');
+  const loginPane=document.getElementById('loginPane');
+  const regPane=document.getElementById('registerPane');
+  const pill=document.getElementById('gatePill');
+  const tabs=document.getElementById('gateTabs');
+  const saved=localStorage.getItem('yb_access_pw')||'';
+  let activeTab='login';
+
+  function setPill(which){
+    if(which==='login'){ pill.style.transform='translateX(0)'; }
+    else { pill.style.transform='translateX(100%)'; }
+  }
+  function showLogin(){
+    activeTab='login';
+    tabLogin.classList.add('active'); tabReg.classList.remove('active');
+    loginPane.classList.remove('hidden'); regPane.classList.add('hidden');
+    setPill('login');
+    document.getElementById('gatePw').focus();
+  }
+  function showRegister(){
+    activeTab='register';
+    tabReg.classList.add('active'); tabLogin.classList.remove('active');
+    regPane.classList.remove('hidden'); loginPane.classList.add('hidden');
+    setPill('register');
+    document.getElementById('regPw1').focus();
+  }
+  tabLogin.addEventListener('click', showLogin);
+  tabReg.addEventListener('click', showRegister);
+
+  // ===== 标签药丸跟手拖动 =====
+  let tabDrag=false, tabStartX=0, pillStartX=0, lastTabT=0, tabLastDX=0;
+  function tabDown(e){
+    tabDrag=true; tabs.classList.add('dragging');
+    const pt=e.touches?e.touches[0]:e;
+    tabStartX=pt.clientX;
+    pillStartX=activeTab==='login'?0:pill.offsetWidth;
+    lastTabT=Date.now(); tabLastDX=0;
+    e.preventDefault();
+  }
+  function tabMove(e){
+    if(!tabDrag) return;
+    const pt=e.touches?e.touches[0]:e;
+    let dx=pt.clientX-tabStartX;
+    const maxX=pill.offsetWidth;
+    dx=Math.max(0,Math.min(maxX,pillStartX+dx));
+    const now=Date.now();
+    const dt=now-lastTabT;
+    const speed=dt>0?Math.abs(dx-tabLastDX)/dt:0;
+    tabLastDX=dx; lastTabT=now;
+    // 快拖压扁
+    const sq=Math.min(speed*1.5,0.06);
+    pill.style.transform=`translateX(${dx}px) scale(${1+sq}, ${1-sq})`;
+    if(dx>maxX/2){ tabReg.classList.add('active'); tabLogin.classList.remove('active'); }
+    else { tabLogin.classList.add('active'); tabReg.classList.remove('active'); }
+  }
+  function tabUp(){
+    if(!tabDrag) return;
+    tabDrag=false; tabs.classList.remove('dragging');
+    const maxX=pill.offsetWidth;
+    const dx=parseFloat(pill.style.transform.replace('translateX(','').split(' ')[0].replace('px)',''))||0;
+    if(dx>maxX/2) showRegister(); else showLogin();
+  }
+  tabs.addEventListener('mousedown', tabDown);
+  document.addEventListener('mousemove', tabMove);
+  document.addEventListener('mouseup', tabUp);
+  tabs.addEventListener('touchstart', tabDown, {passive:false});
+  document.addEventListener('touchmove', tabMove, {passive:false});
+  document.addEventListener('touchend', tabUp);
+
+  if(LOCK_CONFIG.locked || saved) showLogin(); else showRegister();
+
+  // ===== 登录 =====
+  const loginBtn=document.getElementById('loginBtn');
+  const loginPw=document.getElementById('gatePw');
+  const loginErr=document.getElementById('loginErr');
+  function doLogin(){
+    const v=loginPw.value;
+    if(!v||v.length<4){ loginErr.textContent='凭证至少 4 位'; return; }
+    if(LOCK_CONFIG.locked){
+      if(simpleHash(v)===LOCK_CONFIG.pwHash){
+        gate.classList.add('hidden'); sessionStorage.setItem('yb_unlocked','1'); render();
+      } else { loginErr.textContent='凭证错误，请重试'; loginPw.value=''; loginPw.focus(); }
+    } else {
+      if(v===saved){
+        gate.classList.add('hidden'); sessionStorage.setItem('yb_unlocked','1'); render();
+      } else { loginErr.textContent='凭证错误，请重试'; loginPw.value=''; loginPw.focus(); }
+    }
+  }
+  loginBtn.addEventListener('click', doLogin);
+  loginPw.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+  // ===== 注册 =====
+  const regBtn=document.getElementById('regBtn');
+  const regPw1=document.getElementById('regPw1');
+  const regPw2=document.getElementById('regPw2');
+  const regErr=document.getElementById('regErr');
+  function doRegister(){
+    const v1=regPw1.value, v2=regPw2.value;
+    if(!v1||v1.length<4){ regErr.textContent='凭证至少 4 位'; return; }
+    if(v1!==v2){ regErr.textContent='两次输入不一致'; return; }
+    localStorage.setItem('yb_access_pw', v1);
+    gate.classList.add('hidden'); sessionStorage.setItem('yb_unlocked','1'); render();
+  }
+  regBtn.addEventListener('click', doRegister);
+  regPw2.addEventListener('keydown', e=>{ if(e.key==='Enter') doRegister(); });
+}
+
+/* ===== 导出带密码锁的发布版 ===== */
+async function exportLocked(){
+  const pw=localStorage.getItem('yb_access_pw')||'';
+  if(!pw){ toast('请先设置访问凭证','bad'); return; }
+  const pwHash=simpleHash(pw);
+  try{
+    let src;
+    try{ src=await (await fetch(location.href)).text(); }
+    catch(e){ src='<!DOCTYPE html>\n'+document.documentElement.outerHTML; }
+    const lockedSrc=src.replace(/const LOCK_CONFIG = \{[^}]*\};/,
+      "const LOCK_CONFIG = { locked:true, pwHash:'"+pwHash+"' };");
+    if(lockedSrc===src){ toast('替换失败，请联系开发者','bad'); return; }
+    const blob=new Blob([lockedSrc],{type:'text/html;charset=utf-8'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='index.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('已下载带密码锁的 index.html，把它传到 GitHub');
+  }catch(e){ toast('生成失败：'+e.message,'bad'); }
+}
+
+/* ================= 启动 ================= */
+if(sessionStorage.getItem('yb_unlocked')==='1'){
+  document.getElementById('gate').classList.add('hidden');
+  render();
+} else {
+  initGate();
+}
+</script>
 </body>
 </html>
