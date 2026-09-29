@@ -2,761 +2,1135 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="referrer" content="no-referrer">
-<title>云屉 · 随身文件柜</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='7' width='24' height='19' rx='4' fill='%230d7c66'/%3E%3Crect x='8' y='12' width='16' height='3' rx='1.5' fill='%23ffffff'/%3E%3Crect x='8' y='18' width='10' height='3' rx='1.5' fill='%23d8e8e4'/%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>自言自语 · 打字转语音</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='9' width='4' height='6' rx='2' fill='%2334d399'/%3E%3Crect x='10' y='4' width='4' height='16' rx='2' fill='%237c9cff'/%3E%3Crect x='17' y='7' width='4' height='10' rx='2' fill='%23a78bfa'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
 <style>
+*{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#eef1f4; --surface:#ffffff; --ink:#16212b; --muted:#5a6b78; --line:#e2e7ec;
-  --accent:#0d7c66; --accent-deep:#0a5f4e; --accent-soft:#e2f0ec;
-  --danger:#b3402c; --danger-soft:#fbe9e4; --warn:#a06a00; --warn-soft:#fbf0d8;
-  --radius:14px; --shadow:0 8px 30px rgba(22,33,43,.08);
-  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Menlo,Consolas,monospace;
+  --bg1:#0a0f1f;--bg2:#131a38;
+  --panel:rgba(255,255,255,.05);
+  --panel2:rgba(255,255,255,.075);
+  --line:rgba(255,255,255,.09);
+  --line2:rgba(255,255,255,.16);
+  --text:#e9efff;--muted:#98a3c8;--faint:#6b7699;
+  --accent:#34d399;--blue:#7c9cff;--violet:#a78bfa;
+  --key:#1a2240;--key2:#232e58;--keyLine:rgba(255,255,255,.08);
+  --ease:cubic-bezier(.22,1,.36,1);
 }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{height:100%}
 body{
-  font-family:"PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
-  background:var(--bg);color:var(--ink);line-height:1.55;
+  font-family:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(160deg,var(--bg1),var(--bg2));
+  color:var(--text);
   -webkit-font-smoothing:antialiased;
-  user-select:none;-webkit-user-select:none;min-height:100vh;
+  overflow:hidden;
 }
-a{color:var(--accent);text-decoration:none}
-button{font-family:inherit}
-.hidden{display:none!important}
-img{-webkit-user-drag:none;user-select:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-.shell{max-width:820px;margin:0 auto;padding:16px 16px 60px}
-header.site{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 18px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.2px}
-.brand .logo{width:30px;height:30px;flex:none}
-.brand .logo svg{display:block;width:100%;height:100%}
-.brand small{font-weight:500;color:var(--muted);font-size:12px}
-.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line)}
+/* ===== 背景光晕 ===== */
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;will-change:transform}
+.b1{width:46vmax;height:46vmax;left:-14vmax;top:-16vmax;background:radial-gradient(circle at 35% 35%,rgba(52,211,153,.5),transparent 62%);animation:drift1 26s ease-in-out infinite alternate}
+.b2{width:42vmax;height:42vmax;right:-12vmax;top:6vmax;background:radial-gradient(circle at 60% 40%,rgba(124,156,255,.55),transparent 62%);animation:drift2 32s ease-in-out infinite alternate}
+.b3{width:40vmax;height:40vmax;left:18vmax;bottom:-20vmax;background:radial-gradient(circle at 50% 50%,rgba(167,139,250,.4),transparent 62%);animation:drift3 38s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(7vmax,5vmax) scale(1.12)}}
+@keyframes drift2{to{transform:translate(-6vmax,8vmax) scale(.92)}}
+@keyframes drift3{to{transform:translate(4vmax,-6vmax) scale(1.08)}}
 
-/* ===== 凭证卡片 ===== */
-.cred-card{padding:16px 18px;margin-bottom:18px}
-.cred-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.cred-head b{font-size:14px}
-.cred-status{font-size:13px;color:var(--muted);margin-top:2px;word-break:break-all}
-.cred-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.hint-box{font-size:13px;color:var(--muted);background:var(--bg);border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.6}
-.mono{font-family:var(--mono)}
-textarea.cred-input{width:100%;min-height:74px;font-size:16px;font-family:var(--mono);border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;background:#fbfcfd;color:var(--ink);outline:none}
-
-/* ===== 通用按钮 ===== */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;border-radius:10px;font-size:14px;font-weight:600;min-height:44px;padding:10px 16px;transition:transform .08s,background .15s}
-.btn:active{transform:translateY(1px)}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{background:var(--accent-deep)}
-.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.btn-ghost:hover{background:var(--bg)}
-.btn-danger{background:var(--danger-soft);color:var(--danger)}
-.btn-danger:hover{background:#f4d8d0}
-.btn-small{min-height:44px;padding:8px 12px;font-size:12px;border-radius:8px}
-
-/* ===== 上传区 ===== */
-.toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.drop{border:2px dashed var(--line);border-radius:var(--radius);background:var(--surface);padding:34px 20px;text-align:center;color:var(--muted);cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:20px}
-.drop:hover,.drop.drag{border-color:var(--accent);background:var(--accent-soft)}
-.drop .big{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:4px}
-.drop .small{font-size:13px}
-.progress{height:8px;background:var(--bg);border-radius:999px;overflow:hidden;margin:14px 0 4px;display:none}
-.progress.show{display:block}
-.progress .bar{height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .2s}
-.upload-meta{font-size:12px;color:var(--muted);text-align:center;display:none;margin-bottom:8px}
-.upload-meta.show{display:block}
-
-/* ===== 文件列表 ===== */
-.files-head{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 10px}
-.files-head h2{margin:0;font-size:15px;font-weight:700}
-.count{font-size:13px;color:var(--muted)}
-.file-row{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(22,33,43,.04)}
-.file-ico{flex:none;width:38px;height:38px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;text-transform:uppercase}
-.file-main{flex:1;min-width:0}
-.file-name{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.file-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 10px}
-.expiry{font-weight:600}
-.expiry.ok{color:var(--accent)}
-.expiry.warn{color:var(--warn)}
-.expiry.late{color:var(--danger)}
-.file-actions{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
-.file-actions button{border:none;cursor:pointer;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:600}
-.dl{background:var(--accent-soft);color:var(--accent-deep)}
-.dl:hover{background:var(--accent);color:#fff}
-.del{background:var(--danger-soft);color:var(--danger)}
-.del:hover{background:var(--danger);color:#fff}
-.empty{text-align:center;padding:44px 20px;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius);background:var(--surface)}
-.empty .ic{font-size:34px;margin-bottom:10px;opacity:.55}
-.empty p{margin:4px 0}
-.empty .tip{font-size:13px}
-
-/* ===== toast ===== */
-#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:88vw;text-align:center;z-index:99}
-#toast.show{opacity:.96;transform:translateX(-50%) translateY(0)}
-#toast.ok{background:var(--accent)}
-#toast.bad{background:var(--danger)}
-
-footer.site{text-align:center;color:var(--muted);font-size:12px;margin-top:26px;padding:0 16px 30px}
-
-/* ===== 液态玻璃登录页（可拖动） ===== */
-.gate{position:fixed;inset:0;z-index:100;overflow:hidden;
-  background:linear-gradient(135deg,#ff512f,#f09819,#ffd200,#ff6b35,#ff512f);
-  background-size:400% 400%;animation:gateBg 10s ease infinite}
-@keyframes gateBg{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-
-/* 背景装饰大字，拖玻璃时能看到透过模糊 */
-.gate-bg-text{position:absolute;font-size:120px;font-weight:900;color:rgba(255,255,255,.12);pointer-events:none;user-select:none;white-space:nowrap}
-.gate-bg-text.t1{top:8%;left:-5%}
-.gate-bg-text.t2{bottom:12%;right:-5%}
-.gate-bg-text.t3{top:45%;left:30%;font-size:80px}
-
-.gate-orb{position:absolute;border-radius:50%;filter:blur(50px);opacity:.5;pointer-events:none}
-.gate-orb.o1{width:240px;height:240px;background:#ff2d2d;top:-40px;left:-30px}
-.gate-orb.o2{width:200px;height:200px;background:#ffe600;bottom:-30px;right:-20px}
-
-/* 可拖动的玻璃面板 */
-.gate-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:min(380px,90vw);padding:32px 26px 24px;border-radius:28px;
-  background:rgba(255,255,255,.15);
-  backdrop-filter:blur(24px) saturate(200%);-webkit-backdrop-filter:blur(24px) saturate(200%);
-  border:1.5px solid rgba(255,255,255,.4);
-  box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.6),
-    inset 0 -1px 1px rgba(255,255,255,.2),
-    0 20px 50px rgba(200,50,10,.25),
-    0 0 0 1px rgba(255,255,255,.1);
-  cursor:grab;touch-action:none;user-select:none;
-  transition:box-shadow .2s}
-.gate-box:active{cursor:grabbing}
-.gate-box.dragging{transition:none;box-shadow:
-    inset 0 1px 1px rgba(255,255,255,.7),
-    inset 0 -1px 1px rgba(255,255,255,.25),
-    0 30px 60px rgba(200,50,10,.35),
-    0 0 20px rgba(255,200,0,.3)}
-/* 边缘红黄折射光 */
-.gate-box::before{content:'';position:absolute;inset:-1.5px;border-radius:28px;pointer-events:none;
-  background:linear-gradient(135deg,rgba(255,80,50,.4),transparent 30%,transparent 70%,rgba(255,220,0,.4));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;padding:1.5px}
-.gate-box.dragging::before{
-  background:linear-gradient(135deg,rgba(255,60,30,.7),rgba(255,200,0,.4) 50%,rgba(255,80,50,.6));
-  animation:refract .3s linear infinite}
-@keyframes refract{0%{filter:hue-rotate(0deg)}50%{filter:hue-rotate(20deg)}100%{filter:hue-rotate(0deg)}}
-
-.gate-drag-handle{padding:8px 0 16px;text-align:center;cursor:grab;user-select:none}
-.gate-drag-handle::after{content:'';display:block;width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.4);margin:0 auto}
-.gate-box .lock{width:52px;height:52px;margin:0 auto 12px;
-  background:rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(255,255,255,.4)}
-.gate-box .lock svg{width:26px;height:26px;fill:#fff}
-.gate-title{font-size:19px;font-weight:700;text-align:center;color:#fff;margin-bottom:2px;text-shadow:0 1px 8px rgba(0,0,0,.15)}
-.gate-sub{font-size:12px;color:rgba(255,255,255,.7);text-align:center;margin-bottom:18px}
-
-.gate-tabs{position:relative;display:flex;background:rgba(255,255,255,.1);border-radius:14px;padding:4px;margin-bottom:18px;border:1px solid rgba(255,255,255,.15);touch-action:none;overflow:hidden}
-.gate-tab{flex:1;text-align:center;padding:9px 0;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:rgba(255,255,255,.7);z-index:2;transition:color .2s;position:relative}
-.gate-tab.active{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.2)}
-.gate-pill{position:absolute;top:4px;left:4px;width:calc(50% - 4px);height:calc(100% - 8px);
-  background:rgba(255,255,255,.25);
-  backdrop-filter:blur(12px) saturate(180%);-webkit-backdrop-filter:blur(12px) saturate(180%);
-  border-radius:10px;z-index:1;
-  border:1px solid rgba(255,255,255,.4);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 6px rgba(200,50,10,.15);
-  transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
-.gate-tabs.dragging .gate-pill{transition:none;
-  background:rgba(255,255,255,.35);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 12px rgba(200,50,10,.25),0 0 16px rgba(255,180,0,.3)}
-.gate-pill::after{content:'';position:absolute;inset:0;border-radius:10px;pointer-events:none;
-  background:linear-gradient(135deg,rgba(255,80,40,.3),transparent 40%,transparent 60%,rgba(255,220,0,.3));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;mask-composite:exclude;padding:1px}
-
-.gate-box input[type=password]{width:100%;font-size:16px;padding:12px 14px;border:1px solid rgba(255,255,255,.3);border-radius:14px;outline:none;
-  background:rgba(255,255,255,.15);color:#fff;margin-top:10px;cursor:text;user-select:text}
-.gate-box input[type=password]::placeholder{color:rgba(255,255,255,.55)}
-.gate-box input[type=password]:focus{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.22)}
-.gate-err{color:#fff;font-size:13px;min-height:20px;margin-top:8px;text-align:left;background:rgba(220,50,50,.35);padding:6px 10px;border-radius:8px}
-.gate-box .btn{width:100%;margin-top:12px;background:#fff;color:#d4380d;border:none;font-weight:700;border-radius:14px;padding:13px;cursor:pointer}
-.gate-box .btn:hover{background:rgba(255,255,255,.9)}
-.gate-note{font-size:11px;color:rgba(255,255,255,.55);text-align:center;margin-top:14px}
-
-@media (max-width:560px){
-  .shell{padding:12px 12px 50px}
-  .file-actions{flex-direction:column}
+/* ===== 应用壳 ===== */
+.app{
+  position:relative;z-index:1;
+  height:100vh;height:100dvh;max-width:920px;margin:0 auto;
+  display:flex;flex-direction:column;
+  background:rgba(10,15,31,.55);
+  border-left:1px solid var(--line);border-right:1px solid var(--line);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media(min-width:721px){
+  body{padding:16px}
+  .app{height:calc(100vh - 32px);height:calc(100dvh - 32px);border:1px solid var(--line);border-radius:30px;box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden}
+}
+
+/* ===== 顶栏 ===== */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px 12px;border-bottom:1px solid var(--line);flex:none}
+.brand{display:flex;align-items:center;gap:11px;cursor:pointer;user-select:none}
+.brand-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,rgba(52,211,153,.22),rgba(124,156,255,.22));border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;gap:3px}
+.brand-mark i{width:3px;border-radius:2px;background:linear-gradient(180deg,var(--accent),var(--blue));animation:wave .95s ease-in-out infinite}
+.brand-mark i:nth-child(1){height:10px}
+.brand-mark i:nth-child(2){height:18px;animation-delay:.12s}
+.brand-mark i:nth-child(3){height:14px;animation-delay:.24s}
+.brand-mark i:nth-child(4){height:20px;animation-delay:.36s}
+.brand-mark i:nth-child(5){height:11px;animation-delay:.48s}
+.brand-text h1{font-size:17px;font-weight:700;letter-spacing:.14em}
+.brand-text p{font-size:11px;color:var(--muted);letter-spacing:.22em;margin-top:1px}
+.top-actions{display:flex;align-items:center;gap:9px}
+.pill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:999px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font-size:12.5px;cursor:pointer;transition:.25s var(--ease);white-space:nowrap}
+.pill:hover{background:var(--panel2);border-color:rgba(52,211,153,.5)}
+.pill svg{width:15px;height:15px;color:var(--accent);flex:none}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);flex:none}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.25s var(--ease);flex:none}
+.icon-btn:hover{color:var(--text);border-color:var(--line2);background:var(--panel2)}
+.icon-btn svg{width:16px;height:16px}
+
+/* ===== 消息区 ===== */
+.stage{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:20px 16px 10px}
+.stage::-webkit-scrollbar{width:6px}
+.stage::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;text-align:center;gap:8px;padding:40px 24px}
+.empty.hide{display:none}
+.empty-icon{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,rgba(52,211,153,.16),rgba(124,156,255,.16));border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;margin-bottom:8px;animation:pulseSoft 3.2s ease-in-out infinite}
+.empty-icon svg{width:36px;height:36px;color:var(--accent)}
+.empty h2{font-size:18px;font-weight:600;letter-spacing:.08em}
+.empty p{font-size:13px;color:var(--muted);line-height:1.9}
+.empty .sub{color:var(--faint);font-size:12px}
+@keyframes pulseSoft{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.25)}50%{box-shadow:0 0 0 18px rgba(52,211,153,0)}}
+.msg-list{display:flex;flex-direction:column;gap:14px;max-width:660px;margin:0 auto;padding-bottom:8px}
+.msg{display:flex;gap:10px;animation:msgIn .55s var(--ease) both}
+.msg-avatar{flex:none;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1f2b52,#2c2152);border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;margin-top:2px}
+.msg-avatar svg{width:16px;height:16px;color:var(--blue)}
+.msg-body{flex:1;min-width:0}
+.msg-text{display:inline-block;max-width:100%;background:rgba(255,255,255,.065);border:1px solid var(--line);border-radius:4px 16px 16px 16px;padding:11px 15px;font-size:15.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;transition:border-color .3s,background .3s}
+.msg.speaking .msg-text{border-color:rgba(52,211,153,.55);background:rgba(52,211,153,.09)}
+.msg-wave{display:none;align-items:center;height:18px;margin-top:7px}
+.msg.speaking .msg-wave{display:flex}
+@keyframes msgIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+
+/* ===== 波形 ===== */
+.wave{display:inline-flex;align-items:center;gap:3px;height:20px}
+.wave i{display:block;width:4px;border-radius:3px;background:linear-gradient(180deg,var(--accent),var(--blue));transform:scaleY(.25);transform-origin:center;animation:wave 1s ease-in-out infinite}
+.wave i:nth-child(2){animation-delay:.13s}
+.wave i:nth-child(3){animation-delay:.26s}
+.wave i:nth-child(4){animation-delay:.39s}
+.wave i:nth-child(5){animation-delay:.52s}
+@keyframes wave{0%,100%{transform:scaleY(.25)}50%{transform:scaleY(1)}}
+
+/* ===== 底部坞 ===== */
+.dock{flex:none;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(10,15,31,.3),rgba(10,15,31,.88));border-top:1px solid var(--line)}
+.speaking-bar{display:flex;align-items:center;gap:10px;max-width:660px;margin:0 auto 10px;padding:7px 13px;border-radius:14px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.22);opacity:0;transform:translateY(6px);pointer-events:none;transition:.35s var(--ease)}
+.speaking-bar.show{opacity:1;transform:none;pointer-events:auto}
+.speaking-tag{flex:none;font-size:11px;color:var(--accent);letter-spacing:.12em;border:1px solid rgba(52,211,153,.35);border-radius:999px;padding:2px 8px}
+.speaking-text{flex:1;min-width:0;font-size:13.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===== 组合条 ===== */
+.compose-bar{max-width:660px;margin:0 auto 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.compose-bar[hidden]{display:none}
+.compose-prefix{font-size:11px;color:var(--violet);letter-spacing:.14em;flex:none}
+.compose-text{display:inline-flex;align-items:center;gap:7px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.28);border-radius:10px;padding:4px 10px;font-size:14px;min-height:28px;flex-wrap:wrap}
+.caret{display:inline-block;width:2px;height:16px;background:var(--violet);border-radius:1px;animation:caret 1.1s steps(2) infinite}
+@keyframes caret{50%{opacity:0}}
+.cand{font-size:13px;color:var(--text);background:rgba(255,255,255,.09);border:1px solid var(--line);border-radius:7px;padding:2px 8px;cursor:pointer;transition:.2s}
+.cand:hover{background:rgba(52,211,153,.2);border-color:rgba(52,211,153,.5)}
+
+/* ===== 输入行 ===== */
+.input-row{max-width:660px;margin:0 auto;display:flex;align-items:flex-end;gap:9px;background:var(--panel);border:1px solid var(--line2);border-radius:18px;padding:7px 7px 7px 14px;transition:border-color .3s,box-shadow .3s}
+.input-row:focus-within{border-color:rgba(52,211,153,.55);box-shadow:0 0 0 3px rgba(52,211,153,.12)}
+#input{flex:1;min-width:0;background:transparent;border:0;outline:0;resize:none;color:var(--text);font:inherit;font-size:16.5px;line-height:1.55;padding:8px 0;max-height:118px}
+#input::placeholder{color:var(--faint)}
+.send-btn{flex:none;width:44px;height:44px;border-radius:14px;border:0;cursor:pointer;background:linear-gradient(135deg,var(--accent),#22c1a3 60%,var(--blue));color:#06121a;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(52,211,153,.35);transition:transform .2s var(--ease),box-shadow .2s}
+.send-btn:hover{transform:translateY(-1px) scale(1.04);box-shadow:0 8px 22px rgba(52,211,153,.45)}
+.send-btn:active{transform:scale(.94)}
+.send-btn svg{width:19px;height:19px}
+
+/* ===== 自定义输入法 ===== */
+.ime{max-width:660px;margin:10px auto 0;padding:2px;user-select:none;-webkit-user-select:none}
+.ime[hidden]{display:none}
+.ime-row{display:flex;gap:6px;margin-bottom:7px}
+.key{flex:1;height:44px;border:1px solid var(--keyLine);border-radius:11px;background:linear-gradient(180deg,var(--key2),var(--key));color:var(--text);font-size:18px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07);transition:transform .07s,background .15s,box-shadow .07s;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.key:hover{background:linear-gradient(180deg,var(--key2),#28345f)}
+.key:active{transform:translateY(2px) scale(.97);box-shadow:0 1px 0 rgba(0,0,0,.35),0 0 14px rgba(52,211,153,.35)}
+.key.tool{flex:1.45;font-size:15px;color:var(--muted)}
+.key.tool svg{width:19px;height:19px}
+.key.wide{flex:5;font-size:15px;color:var(--muted);letter-spacing:.2em}
+.key.enter{flex:2;font-size:14px;color:#07131c;background:linear-gradient(180deg,var(--accent),#2bc49a);border-color:rgba(52,211,153,.6);letter-spacing:.05em}
+.key.enter:active{box-shadow:0 1px 0 rgba(0,0,0,.3),0 0 16px rgba(52,211,153,.5)}
+.key.shift-on{color:var(--accent);border-color:rgba(52,211,153,.5)}
+.key.sym{font-size:15px}
+.key.k9key{position:relative;padding:4px 2px;flex:1}
+.key.k9key .k9{display:block;font-size:11px;color:var(--muted);letter-spacing:.08em;line-height:1}
+.key.k9key .k9-main{display:block;font-size:17px;font-weight:600;line-height:1.15;margin-top:2px;color:var(--text)}
+.key.k9key .k9-main::after{content:"";display:block;width:14px;height:2px;border-radius:1px;background:var(--accent);margin:1px auto 0;transition:.15s}
+.key.k9key:active .k9-main::after{box-shadow:0 0 8px var(--accent)}
+.listen-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:42px;margin-top:6px;border:1px solid rgba(52,211,153,.4);border-radius:12px;background:rgba(52,211,153,.08);color:var(--accent);font-size:13.5px;font-family:inherit;cursor:pointer;transition:.25s var(--ease)}
+.listen-btn:hover{background:rgba(52,211,153,.16)}
+.listen-btn:active{transform:scale(.97)}
+.listen-btn svg{width:16px;height:16px}
+
+/* ===== 弹层 ===== */
+.overlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,8,20,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.show{opacity:1;pointer-events:auto}
+.overlay[hidden]{display:none}
+.sheet{width:min(560px,100%);max-height:88dvh;overflow:auto;background:linear-gradient(180deg,#161d3c,#10162e);border:1px solid var(--line2);border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.5);transform:translateY(22px) scale(.95);transition:transform .38s var(--ease);padding:22px}
+.overlay.show .sheet{transform:none}
+.sheet::-webkit-scrollbar{width:5px}
+.sheet::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:3px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sheet-head h2{font-size:18px;font-weight:700;letter-spacing:.12em}
+.set-group{margin-bottom:20px}
+.set-group h3{font-size:12px;color:var(--muted);letter-spacing:.16em;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.set-group h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;cursor:pointer;transition:.25s var(--ease);background:rgba(255,255,255,.03)}
+.opt:hover{border-color:var(--line2);background:rgba(255,255,255,.06)}
+.opt:has(input:checked){border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.07)}
+.opt input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.opt b{display:block;font-size:14.5px;font-weight:600}
+.opt i{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:3px}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 2px;font-size:13.5px;color:var(--text)}
+.field>span{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.field em{font-style:normal;color:var(--accent);font-size:12px;min-width:34px}
+select{background:#1a2140;color:var(--text);border:1px solid var(--line2);border-radius:10px;padding:7px 10px;font-size:13px;font-family:inherit;outline:0;max-width:58%;min-width:0}
+input[type=range]{flex:1;accent-color:var(--accent);height:20px;min-width:0}
+.set-note{font-size:12px;color:var(--faint);line-height:1.8;border-top:1px dashed var(--line);padding-top:14px;margin-top:4px}
+
+/* ===== 欢迎弹窗 ===== */
+.welcome{text-align:center;padding:34px 26px 30px}
+.welcome-logo{width:66px;height:66px;margin:0 auto 18px;border-radius:50%;background:linear-gradient(135deg,rgba(52,211,153,.25),rgba(124,156,255,.25));border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;animation:pulseSoft 3s ease-in-out infinite}
+.welcome-logo svg{width:30px;height:30px;color:var(--accent)}
+.welcome h2{font-size:20px;font-weight:700;letter-spacing:.08em;margin-bottom:12px}
+.welcome p{font-size:14px;color:var(--muted);line-height:2.1}
+.btn-primary{margin-top:20px;width:100%;height:46px;border:0;border-radius:14px;cursor:pointer;font-size:15px;font-weight:600;color:#06121a;background:linear-gradient(135deg,var(--accent),#22c1a3 60%,var(--blue));box-shadow:0 8px 24px rgba(52,211,153,.35);transition:.25s var(--ease)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(52,211,153,.45)}
+.btn-primary:active{transform:scale(.97)}
+
+/* ===== 提示 ===== */
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);left:50%;transform:translate(-50%,-18px);z-index:80;background:rgba(16,22,46,.92);border:1px solid var(--line2);border-radius:999px;padding:9px 18px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;transition:.35s var(--ease);pointer-events:none;white-space:nowrap;max-width:86vw;overflow:hidden;text-overflow:ellipsis}
+.toast.show{transform:translate(-50%,0);opacity:1}
+
+/* ===== 响应式 ===== */
+@media(max-width:560px){
+  .topbar{padding:12px 14px 10px}
+  .brand-text p{display:none}
+  .key{height:41px;font-size:17px;border-radius:9px}
+  .key.tool{font-size:14px}
+  .key.sym{font-size:14px}
+  .ime-row{gap:5px}
+  .stage{padding:16px 12px 6px}
+  .msg-text{font-size:15px}
+}
+@media(max-width:380px){.key.wide{flex:4}.key.enter{flex:1.7}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+  .blob{display:none}
+}
 </style>
 </head>
 <body>
-<!-- ===== 液态玻璃登录页（可拖动） ===== -->
-<div class="gate" id="gate">
-  <div class="gate-bg-text t1">CLOUD</div>
-  <div class="gate-bg-text t2">云屉</div>
-  <div class="gate-bg-text t3">FILES</div>
-  <div class="gate-orb o1"></div><div class="gate-orb o2"></div>
-  <div class="gate-box" id="gateBox">
-    <div class="gate-drag-handle" id="dragHandle"></div>
-    <div class="lock"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9zm3 5a1.8 1.8 0 0 1 1 3.4V18a1.8 1.8 0 1 1-3.6 0v-1.6A1.8 1.8 0 0 1 12 15z"/></svg></div>
-    <div class="gate-title">云屉 · 随身文件柜</div>
-    <div class="gate-sub">登录或创建你的专属空间</div>
+<div class="bg"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i></div>
 
-    <div class="gate-tabs" id="gateTabs">
-      <div class="gate-pill" id="gatePill"></div>
-      <div class="gate-tab active" id="tabLogin">登 录</div>
-      <div class="gate-tab" id="tabRegister">注 册</div>
+<div class="app">
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand" id="brand" title="点我，我会自我介绍">
+      <div class="brand-mark"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="brand-text">
+        <h1>自言自语</h1>
+        <p>打字 · 即念 · 万物有声</p>
+      </div>
     </div>
-
-    <div id="loginPane">
-      <input type="password" id="gatePw" placeholder="输入访问凭证" autocomplete="current-password">
-      <div class="gate-err" id="loginErr"></div>
-      <button class="btn" id="loginBtn" type="button">登 录</button>
+    <div class="top-actions">
+      <button class="pill" id="imePill" aria-label="切换输入法"><span class="dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2.5"/><path d="M6.5 11h.01M9.5 11h.01M12.5 11h.01M15.5 11h.01M18.5 11h.01M6.5 14h.01M18.5 14h.01M9 14h6"/></svg><span id="imePillText">自定义输入法</span></button>
+      <button class="icon-btn" id="stopBtn" aria-label="停止说话" title="停止说话"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="3"/></svg></button>
+      <button class="icon-btn" id="settingsBtn" aria-label="设置" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.01a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09c0 .68.4 1.3 1.03 1.56a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.01c.26.63.88 1.03 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"/></svg></button>
     </div>
+  </header>
 
-    <div id="registerPane" class="hidden">
-      <input type="password" id="regPw1" placeholder="设置访问凭证（至少4位）" autocomplete="new-password">
-      <input type="password" id="regPw2" placeholder="再输一次确认" autocomplete="new-password">
-      <div class="gate-err" id="regErr"></div>
-      <button class="btn" id="regBtn" type="button">注册并进入</button>
+  <!-- 消息区 -->
+  <main class="stage" id="stage">
+    <div class="empty" id="empty">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v18M8.5 6.5v11M15.5 6.5v11M5 9.5v5M19 9.5v5"/></svg></div>
+      <h2>打字，我来念</h2>
+      <p>每完成一句话，就会被大声念出来。</p>
+      <p class="sub">键盘、弹窗和提示，也都自己会开口</p>
     </div>
+    <div class="msg-list" id="msgList"></div>
+  </main>
 
-    <div class="gate-note">按住顶部小横条可以拖动玻璃</div>
+  <!-- 底部坞 -->
+  <footer class="dock">
+    <div class="speaking-bar" id="speakingBar" role="status">
+      <span class="speaking-tag">正在念</span>
+      <span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="speaking-text" id="speakingText"></span>
+    </div>
+    <div class="compose-bar" id="composeBar" hidden>
+      <span class="compose-prefix">输入中</span>
+      <span class="compose-text" id="composeText"></span>
+    </div>
+    <div class="input-row">
+      <textarea id="input" rows="1" placeholder="打字给我听…" readonly></textarea>
+      <button class="send-btn" id="sendBtn" aria-label="发送"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+    </div>
+    <div class="ime" id="ime"></div>
+  </footer>
+</div>
+
+<!-- 设置弹窗 -->
+<div class="overlay" id="settingsOverlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <header class="sheet-head">
+      <h2 id="settingsTitle">设置</h2>
+      <button class="icon-btn" id="settingsClose" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </header>
+    <section class="set-group">
+      <h3>语音模式</h3>
+      <label class="opt"><input type="radio" name="mode" id="modeSentence" checked><span><b>打一句，念一句</b><i>输入过程中，每完成一句话就立刻朗读</i></span></label>
+      <label class="opt"><input type="radio" name="mode" id="modeEnter"><span><b>打完按回车再念</b><i>输入时不打扰，发送后整段朗读</i></span></label>
+    </section>
+    <section class="set-group">
+      <h3>回车键行为</h3>
+      <label class="opt"><input type="radio" name="enter" id="enterSend" checked><span><b>发送</b><i>回车直接发送并朗读</i></span></label>
+      <label class="opt"><input type="radio" name="enter" id="enterNewline"><span><b>换行</b><i>回车换行，发送请用右侧按钮</i></span></label>
+    </section>
+    <section class="set-group">
+      <h3>键盘布局</h3>
+      <label class="opt"><input type="radio" name="layout" id="layoutQwerty" checked><span><b>26 键</b><i>完整字母键盘，打拼音出候选</i></span></label>
+      <label class="opt"><input type="radio" name="layout" id="layoutNine"><span><b>9 键</b><i>九宫格，连按同键轮换字母</i></span></label>
+    </section>
+    <section class="set-group">
+      <h3>声音</h3>
+      <label class="field"><span>音色</span><select id="voiceSel" aria-label="音色"></select></label>
+      <label class="field"><span>语速 <em id="rateVal">标准</em></span><input type="range" id="rateRange" min="0.5" max="2" step="0.25" value="1"></label>
+      <label class="field"><span>音调 <em id="pitchVal">标准</em></span><input type="range" id="pitchRange" min="0.5" max="2" step="0.25" value="1"></label>
+      <button class="listen-btn" id="listenBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v18M8.5 6.5v11M15.5 6.5v11M5 9.5v5M19 9.5v5"/></svg>试听声音</button>
+    </section>
+    <p class="set-note">这里的一切都会开口说话：按键、提示、还有这个弹窗本身。</p>
   </div>
 </div>
 
-<div class="shell">
-  <header class="site">
-    <div class="brand">
-      <span class="logo"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="7" width="24" height="19" rx="4" fill="#0d7c66"/><rect x="8" y="12" width="16" height="3" rx="1.5" fill="#ffffff"/><rect x="8" y="18" width="10" height="3" rx="1.5" fill="#d8e8e4"/></svg></span>
-      <span>云屉 <small>随身文件柜 · GoFile</small></span>
-    </div>
-    <button class="btn btn-ghost btn-small" id="logoutBtn" type="button" style="min-height:36px">退出</button>
-  </header>
-
-  <main id="view"></main>
-  <footer class="site">文件保存 6 个月自动删除 · 存储由 GoFile.io 免费提供 · 链接公开，请勿存隐私敏感文件</footer>
+<!-- 欢迎弹窗 -->
+<div class="overlay" id="welcomeOverlay" hidden>
+  <div class="sheet welcome" role="dialog" aria-modal="true">
+    <div class="welcome-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3v18M8.5 6.5v11M15.5 6.5v11M5 9.5v5M19 9.5v5"/></svg></div>
+    <h2>欢迎来到 自言自语</h2>
+    <p>在这里打下的每一个字，都会被大声念出来。</p>
+    <p>连键盘、提示和这个弹窗，也都会自己开口说话。</p>
+    <button class="btn-primary" id="welcomeBtn">开始</button>
+  </div>
 </div>
-<div id="toast" role="status"></div>
 
+<div class="toast" id="toast" role="status"></div>
 <script>
-"use strict";
-/* ================= 常量与状态 ================= */
-const GF_API = 'https://api.gofile.io';
-const GF_UPLOAD = 'https://upload.gofile.io/uploadfile';
-const MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000; // 6 个月
+'use strict';
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-const store = {
-  get token(){ return localStorage.getItem('yb_token') || ''; }, set token(v){ v ? localStorage.setItem('yb_token',v) : localStorage.removeItem('yb_token'); },
-  get folderId(){ return localStorage.getItem('yb_folder') || ''; }, set folderId(v){ v ? localStorage.setItem('yb_folder',v) : localStorage.removeItem('yb_folder'); },
-  get expiresAt(){ return Number(localStorage.getItem('yb_expires') || 0); }, set expiresAt(v){ v ? localStorage.setItem('yb_expires',String(v)) : localStorage.removeItem('yb_expires'); },
-  get records(){ try{ return JSON.parse(localStorage.getItem('yb_files') || '[]'); }catch(e){ return []; } },
-  set records(v){ localStorage.setItem('yb_files', JSON.stringify(v)); }
-};
-
+/* ================= 状态 ================= */
 const state = {
-  token: store.token, folderId: store.folderId, expiresAt: store.expiresAt,
-  records: store.records
+  ime: 'custom',            // custom 自定义 | system 系统
+  speechMode: 'sentence',   // sentence 打一句念一句 | enter 回车再念
+  enterBehavior: 'send',    // send 发送 | newline 换行
+  layout: 'qwerty',         // qwerty 26键 | nine 9键
+  rate: 1, pitch: 1, voiceURI: '',
+  shift: false, page: 'abc',
+  buffer: '',               // 输入法组合缓冲
+  caret: 0,                 // 文本区虚拟光标
+  spokenUpTo: 0,            // 已朗读到的文本位置
+  voices: [], toastTimer: null, msgSeq: 0,
+  nineKey: '', nineIdx: 0, nineStart: 0   // 9键多击轮换状态
 };
 
-const view = document.getElementById('view');
-const toastEl = document.getElementById('toast');
+/* ================= 元素 ================= */
+const els = {
+  input: $('#input'), sendBtn: $('#sendBtn'),
+  ime: $('#ime'), imePillText: $('#imePillText'),
+  composeBar: $('#composeBar'), composeText: $('#composeText'),
+  stage: $('#stage'), msgList: $('#msgList'), empty: $('#empty'),
+  speakingBar: $('#speakingBar'), speakingText: $('#speakingText'),
+  settingsOverlay: $('#settingsOverlay'), welcomeOverlay: $('#welcomeOverlay'),
+  toast: $('#toast'), stopBtn: $('#stopBtn'), brand: $('#brand'),
+  settingsBtn: $('#settingsBtn'), settingsClose: $('#settingsClose'),
+  voiceSel: $('#voiceSel'), rateRange: $('#rateRange'), pitchRange: $('#pitchRange'),
+  rateVal: $('#rateVal'), pitchVal: $('#pitchVal'),
+  modeSentence: $('#modeSentence'), modeEnter: $('#modeEnter'),
+  enterSend: $('#enterSend'), enterNewline: $('#enterNewline'),
+  layoutQwerty: $('#layoutQwerty'), layoutNine: $('#layoutNine'), listenBtn: $('#listenBtn'),
+  welcomeBtn: $('#welcomeBtn')
+};
 
-/* 访问凭证锁：导出发布版时脚本会把 locked 改成 true 并写入 pwHash */
-const LOCK_CONFIG = { locked:false, pwHash:'' };
-let toastTimer = null;
-function toast(msg, kind){ toastEl.textContent=msg; toastEl.className=kind?'show '+kind:'show'; clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.className='',3000); }
+/* ================= 图标 ================= */
+const ICO = {
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.3 3.9 5.1 3.9 8.5s-1.3 6.2-3.9 8.5c-2.6-2.3-3.9-5.1-3.9-8.5s1.3-6.2 3.9-8.5z"/></svg>'
+};
 
-/* ================= 界面渲染 ================= */
-function render(){
-  view.innerHTML = `
-    <div class="card cred-card">
-      <div class="cred-head">
-        <div>
-          <b>${state.token ? '已连接凭证' : '凭证：首次上传自动创建'}</b>
-          <div class="cred-status">${state.token ? '令牌 ' + esc(state.token.slice(0,12)) + '… · 文件夹到期 ' + new Date(state.expiresAt).toLocaleDateString() : '不用注册，第一次上传文件时系统会自动生成你的专属凭证。'}</div>
-        </div>
-        <button class="btn btn-ghost btn-small" id="toggleCred" type="button">${state.token ? '凭证管理' : '了解更多'}</button>
-      </div>
-      <div id="credMore" class="hidden">
-        <div class="hint-box">凭证 = 你的“钥匙”：有了它才能管理（删除）已上传的文件。换设备时把下面“复制凭证”的内容粘贴到另一台设备的“粘贴凭证”里即可。Guest 凭证丢失无法找回，请备份好。</div>
-        <textarea class="cred-input" id="credText" placeholder="在这里粘贴另一台设备的凭证…"></textarea>
-        <div class="cred-actions">
-          <button class="btn btn-ghost btn-small" id="copyCred" type="button">复制凭证</button>
-          <button class="btn btn-ghost btn-small" id="pasteCred" type="button">粘贴凭证</button>
-          <button class="btn btn-danger btn-small" id="clearCred" type="button">清除凭证</button>
-        </div>
-        <div class="hint-box" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
-          <b>发布到 GitHub：</b>设好访问凭证后，点下方按钮下载带密码锁的版本，把它传到 GitHub。访客打开必须输密码才能进。
-        </div>
-        <div class="cred-actions">
-          <button class="btn btn-primary btn-small" id="exportLockedBtn" type="button">生成发布版</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="toolbar">
-      <button class="btn btn-primary" id="pickBtn" type="button">＋ 上传文件</button>
-      <button class="btn btn-ghost" id="copyAllBtn" type="button">复制全部链接</button>
-      <button class="btn btn-ghost" id="exportBtn" type="button">导出清单</button>
-      <button class="btn btn-ghost" id="importBtn" type="button">导入清单</button>
-      <input type="file" id="importInput" accept=".json,.txt" hidden>
-    </div>
-
-    <div class="drop" id="drop">
-      <div class="big">点击选择，或把文件拖进来</div>
-      <div class="small">支持所有文件类型：照片、PDF、Word、zip、视频、音频…手机上选文件时切到"文件/浏览"标签即可</div>
-    </div>
-    <input type="file" id="fileInput" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;left:-9999px">
-    <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
-    <div class="upload-meta" id="upMeta"></div>
-
-    <div class="files-head"><h2>本机文件记录</h2><span class="count" id="fileCount">0 个</span></div>
-    <div id="fileList"></div>`;
-
-  document.getElementById('pickBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
-  document.getElementById('copyAllBtn').addEventListener('click', copyAllLinks);
-  document.getElementById('exportBtn').addEventListener('click', exportList);
-  document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importInput').click());
-  const imp = document.getElementById('importInput');
-  imp.addEventListener('change', ()=>{ if(imp.files[0]) importList(imp.files[0]); imp.value=''; });
-
-  const toggle = document.getElementById('toggleCred');
-  toggle.addEventListener('click', ()=> document.getElementById('credMore').classList.toggle('hidden'));
-  document.getElementById('copyCred').addEventListener('click', copyCred);
-  document.getElementById('pasteCred').addEventListener('click', pasteCred);
-  document.getElementById('clearCred').addEventListener('click', clearCred);
-  document.getElementById('exportLockedBtn').addEventListener('click', exportLocked);
-  document.getElementById('logoutBtn').addEventListener('click', ()=>{
-    if(confirm('退出后需要重新输入访问凭证才能进入，确定？')){
-      sessionStorage.removeItem('yb_unlocked');
-      location.reload();
+/* ================= 语音引擎 ================= */
+const Speech = {
+  queue: [], speaking: false, _busy: false, _current: null, _timer: null,
+  speak(text, meta) {
+    text = String(text || '').trim();
+    if (!text) return;
+    if (this.queue.length > 40) this.queue = this.queue.slice(-25);
+    this.queue.push({ text, meta: meta || {} });
+    this.next();
+  },
+  next() {
+    if (this._busy) return;
+    if (!this.queue.length) { this.speaking = false; this.setUI(false); return; }
+    this.speaking = true;
+    this._busy = true;
+    const u = this.queue.shift();
+    this._current = u;
+    if (!('speechSynthesis' in window)) {
+      this.speaking = false; this._busy = false; this.setUI(false); this.next(); return;
     }
+    try { speechSynthesis.resume(); } catch (e) {}
+    let utter;
+    try { utter = new SpeechSynthesisUtterance(u.text); }
+    catch (e) { this.speaking = false; this._busy = false; this.setUI(false); this.next(); return; }
+    utter.lang = 'zh-CN';
+    const v = this.pickVoice();
+    if (v) utter.voice = v;
+    utter.rate = state.rate; utter.pitch = state.pitch; utter.volume = 1;
+    const finish = () => {
+      if (this._current !== u) return;
+      clearTimeout(this._timer);
+      this._current = null;
+      this._busy = false;
+      this.setUI(false);
+      this.next();
+    };
+    utter.onstart = () => { if (this._current === u) this.setUI(true, u); };
+    utter.onend = finish;
+    utter.onerror = e => {
+      if (this._current !== u) return;
+      if (e && e.error === 'canceled') {
+        clearTimeout(this._timer);
+        this.queue = []; this.speaking = false; this._busy = false; this._current = null;
+        this.setUI(false);
+      } else {
+        finish();
+      }
+    };
+    try { speechSynthesis.speak(utter); }
+    catch (e) { this._busy = false; this._current = null; this.setUI(false); this.next(); return; }
+    // 超时兜底：防止个别浏览器 onend 不触发导致队列卡死
+    this._timer = setTimeout(() => {
+      if (this._current === u) {
+        this._current = null;
+        this._busy = false;
+        this.setUI(false);
+        try { speechSynthesis.cancel(); } catch (e) {}
+        this.next();
+      }
+    }, Math.max(8000, u.text.length * 700));
+  },
+  stop() {
+    try { speechSynthesis.cancel(); } catch (e) {}
+    clearTimeout(this._timer);
+    this.queue = []; this.speaking = false; this._busy = false; this._current = null;
+    this.setUI(false);
+  },
+  pickVoice() {
+    if (state.voiceURI) {
+      const f = state.voices.find(v => v.voiceURI === state.voiceURI);
+      if (f) return f;
+    }
+    return state.voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh')) || null;
+  },
+  setUI(on, u) {
+    const isText = on && u && (u.meta.source === 'input' || u.meta.source === 'bubble');
+    els.speakingBar.classList.toggle('show', !!isText);
+    if (isText) {
+      els.speakingText.textContent = u.text.length > 46 ? u.text.slice(0, 46) + '…' : u.text;
+    }
+    document.querySelectorAll('.msg.speaking').forEach(m => m.classList.remove('speaking'));
+    if (isText && u.meta.source === 'bubble' && u.meta.id) {
+      const m = document.querySelector('[data-id="' + u.meta.id + '"]');
+      if (m) m.classList.add('speaking');
+    }
+  }
+};
+
+/* 字母合并朗读：连续按键合并成一次念，避免打断与卡顿 */
+let letterTimer = null, letterBuf = '';
+function speakLetters(ch) {
+  letterBuf += ch;
+  clearTimeout(letterTimer);
+  letterTimer = setTimeout(() => {
+    const s = letterBuf;
+    letterBuf = '';
+    if (s) Speech.speak(s);
+  }, 240);
+}
+function flushLetters() {
+  clearTimeout(letterTimer);
+  letterBuf = '';
+}
+/* 音色选择 */
+function loadVoices() {
+  if (!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return;
+  const zh = vs.filter(v => v.lang && v.lang.toLowerCase().indexOf('zh') === 0);
+  state.voices = zh.length ? zh : vs;
+  els.voiceSel.innerHTML = '';
+  state.voices.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.voiceURI;
+    const short = (v.name || '').replace(/\s*(zh[-_ ]?CN|Chinese|普通话|中文).*$/i, '').trim() || v.name;
+    o.textContent = short + ' · ' + (v.lang || '');
+    els.voiceSel.appendChild(o);
   });
-
-  const input = document.getElementById('fileInput');
-  input.addEventListener('change', ()=>{ if(input.files[0]) doUpload(input.files[0]); input.value=''; });
-  const drop = document.getElementById('drop');
-  drop.addEventListener('click', ()=> input.click());
-  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('drag'); }));
-  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('drag'); }));
-  drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) doUpload(f); });
-
-  pruneExpired();
-  renderList();
+  if (!state.voiceURI) {
+    state.voiceURI = state.voices[0] ? state.voices[0].voiceURI : '';
+    els.voiceSel.value = state.voiceURI;
+  }
+}
+if ('speechSynthesis' in window) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
 }
 
-/* ================= 文件列表 ================= */
-function fmtSize(n){ if(n==null) return ''; const u=['B','KB','MB','GB']; let i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return (i===0?n:n.toFixed(1))+' '+u[i]; }
-function extName(name){ const m=/\.([a-z0-9]{1,6})$/i.exec(name); return m?m[1].slice(0,4):'FILE'; }
-function daysLeft(exp){ return Math.ceil((exp-Date.now())/86400000); }
+/* ================= 按键音 ================= */
+let actx = null;
+function tick(freq) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const t = actx.currentTime;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq || 520;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.1, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + 0.08);
+  } catch (e) {}
+}
+const letterFreq = ch => 400 + ((ch.charCodeAt(0) - 97) % 12) * 16;
 
-function pruneExpired(){
-  // 超过 6 个月的记录：尝试用凭证删除远端文件，然后移出本机列表
-  let changed=false;
-  state.records = state.records.filter(r=>{
-    if(r.expiresAt && r.expiresAt <= Date.now()){
-      if(state.token) apiDelete(r.id); // 尽力而为
-      changed=true; return false;
-    }
-    return true;
-  });
-  if(changed) saveRecords();
+/* ================= 拼音词典 ================= */
+const DICT = {
+  a:'啊', ai:'爱', an:'安', ba:'吧', bai:'白', ban:'班', bao:'包', bei:'被', ben:'本',
+  bi:'比', bian:'变', biao:'表', bie:'别', bing:'病', bu:'不', cai:'才', can:'参', cha:'查',
+  chang:'常', che:'车', cheng:'成', chi:'吃', chu:'出', ci:'次', cong:'从', cuo:'错',
+  da:'大', dai:'带', dan:'但', dang:'当', dao:'到', de:'的', deng:'等', di:'地', dian:'点',
+  dong:'动', dou:'都', du:'读', dui:'对', duo:'多', e:'饿', er:'二', fa:'发', fan:'饭',
+  fang:'放', fei:'非', fen:'分', feng:'风', fu:'父', gai:'该', gan:'感', gang:'刚', gao:'高',
+  ge:'个', gei:'给', gen:'跟', geng:'更', gong:'工', gou:'够', guan:'关', guang:'光', gui:'贵',
+  guo:'国', ha:'哈', hai:'还', han:'汉', hao:'好', he:'和', hei:'黑', hen:'很', hong:'红',
+  hou:'后', hua:'话', huai:'坏', huan:'换', huang:'黄', hui:'会', huo:'火', ji:'几', jia:'家',
+  jian:'见', jiang:'讲', jiao:'叫', jie:'接', jin:'今', jing:'经', jiu:'就', ju:'句', kai:'开',
+  kan:'看', kao:'考', ke:'可', kong:'空', kou:'口', kuai:'快', lai:'来', lan:'蓝', lao:'老',
+  le:'了', lei:'累', leng:'冷', li:'里', lian:'连', liang:'两', liao:'聊', ling:'零', liu:'六',
+  lu:'路', ma:'吗', mai:'买', man:'慢', mang:'忙', mao:'猫', mei:'没', men:'门', mi:'米',
+  mian:'面', miao:'秒', ming:'明', na:'那', nai:'奶', nan:'南', nao:'脑', ne:'呢', nei:'内',
+  neng:'能', ni:'你', nian:'年', niao:'鸟', niu:'牛', nv:'女', o:'哦', pa:'怕', pao:'跑',
+  peng:'朋', pian:'片', piao:'票', ping:'平', pu:'普', qi:'七', qian:'前', qiang:'强', qing:'请',
+  qiu:'球', qu:'去', quan:'全', ran:'然', rang:'让', re:'热', ren:'人', ri:'日', rong:'容',
+  san:'三', se:'色', shan:'山', shang:'上', shao:'少', she:'社', shen:'什', sheng:'生', shi:'是',
+  shou:'手', shu:'书', shui:'水', shuo:'说', si:'四', song:'送', suan:'算', sui:'岁', suo:'所',
+  ta:'他', tai:'太', tan:'谈', tang:'糖', te:'特', teng:'疼', ti:'题', tian:'天', tiao:'条',
+  ting:'听', tong:'同', tou:'头', tu:'图', tui:'推', wa:'哇', wai:'外', wan:'晚', wei:'为',
+  wen:'问', wo:'我', wu:'五', xi:'西', xia:'下', xian:'先', xiang:'想', xiao:'小', xie:'写',
+  xin:'心', xing:'星', xiu:'修', xu:'需', xuan:'选', xue:'学', ya:'呀', yan:'眼', yang:'样',
+  yao:'要', ye:'也', yi:'一', yin:'音', ying:'应', yong:'用', you:'有', yuan:'远', yue:'月',
+  yun:'云', zai:'在', zan:'赞', zao:'早', zen:'怎', zeng:'增', zhan:'站', zhang:'张', zhao:'找',
+  zhe:'这', zhen:'真', zheng:'正', zhi:'只', zhong:'中', zhou:'周', zhu:'住', zhuan:'转',
+  zhuang:'装', zhun:'准', zhuo:'桌', zi:'自', zong:'总', zou:'走', zu:'足', zui:'最', zuo:'做',
+  nihao:'你好', zaijian:'再见', xiexie:'谢谢', duibuqi:'对不起', meiguanxi:'没关系',
+  women:'我们', nimen:'你们', tamen:'他们', zaoan:'早安', wanan:'晚安',
+  mingtian:'明天', jintian:'今天', zuotian:'昨天', xianzai:'现在',
+  shenme:'什么', zenme:'怎么', weishenme:'为什么', zhege:'这个', nage:'那个',
+  diannao:'电脑', shouji:'手机', dianshi:'电视', yinyue:'音乐', dianhua:'电话',
+  pengyou:'朋友', laoshi:'老师', xuesheng:'学生', gongzuo:'工作', shenghuo:'生活',
+  shijian:'时间', tianqi:'天气', haochi:'好吃', haowan:'好玩', kaixin:'开心',
+  nanguo:'难过', jiaotong:'交通', gongjiao:'公交', chuzu:'出租', feiji:'飞机',
+  huoche:'火车', ditie:'地铁', gaotie:'高铁', daxue:'大学', xuexiao:'学校',
+  canting:'餐厅', fandian:'饭店', shangdian:'商店', chaoshi:'超市', yiyuan:'医院',
+  yaodian:'药店', gongyuan:'公园', dongwu:'动物', xiaomao:'小猫', xiaogou:'小狗',
+  meili:'美丽', piaoliang:'漂亮', kepa:'可怕', xihuan:'喜欢', zhuhe:'祝贺',
+  shengri:'生日', kuaile:'快乐', xingfu:'幸福', jiankang:'健康', pinyin:'拼音',
+  zhongwen:'中文', yingyu:'英语', shufa:'书法', xiexieni:'谢谢你', aiwo:'爱我',
+  nihaoa:'你好啊', haode:'好的', kedeyi:'可以的', meiwenti:'没问题', tinghao:'挺好',
+  woai:'我爱', aini:'爱你', xiangni:'想你', zaijia:'在家', chumen:'出门', shangban:'上班',
+  xiaban:'下班', jiaban:'加班', xiuxi:'休息', shuijiao:'睡觉', qichuang:'起床',
+  zaofan:'早饭', wufan:'午饭', wanfan:'晚饭', chifan:'吃饭', heshui:'喝水',
+  kaishi:'开始', jieshu:'结束', jinxing:'进行', wancheng:'完成', jixu:'继续',
+  tingzhi:'停止', kaiguan:'开关', dakai:'打开', guanbi:'关闭', chongxin:'重新',
+  shengyin:'声音', yuliang:'音量', yinsu:'语速', yindiao:'音调', putonghua:'普通话',
+  fayin:'发音', langdu:'朗读', nianchu:'念出', shuru:'输入', shuchu:'输出',
+  wenzi:'文字', hanzi:'汉字', zimu:'字母', shuzi:'数字',
+  fuhao:'符号', biaodian:'标点', shuangyin:'双引号', danyin:'单引号',
+  qwerty:'键盘', jiujian:'九键', ershiliujian:'二十六键',
+  xiaoxi:'消息', duanxin:'短信', weixin:'微信', qq:'QQ', youjian:'邮件',
+  dianzi:'电子', wangluo:'网络', hulianwang:'互联网', zhifubao:'支付宝', weixinzhifu:'微信支付', daohang:'导航', ditu:'地图', shipin:'视频', dianying:'电影',
+  youxi:'游戏', changge:'唱歌', tiaowu:'跳舞', yundong:'运动',
+  jianshen:'健身', paobu:'跑步', youyong:'游泳', lanqiu:'篮球', zuqiu:'足球',
+  pingpang:'乒乓', yumaoqiu:'羽毛球', taiqiu:'台球', qipai:'棋牌',
+  lvyou:'旅游', quanjia:'全家', jiaren:'家人', baba:'爸爸', mama:'妈妈',
+  gege:'哥哥', jiejie:'姐姐', didi:'弟弟', meimei:'妹妹', yeye:'爷爷',
+  nainai:'奶奶', waiye:'外公', waipo:'外婆', shushu:'叔叔', ayi:'阿姨',
+  nannv:'男女', xiansheng:'先生', nvshi:'女士', xiaohai:'小孩', haizi:'孩子',
+  baobao:'宝宝', pengyoumen:'朋友们', tongxue:'同学', tongshi:'同事', lingdao:'领导',
+  dongshi:'董事', laoban:'老板', yuanggong:'员工', zhiyuan:'志愿',
+  shangke:'上课', xiake:'下课', zuoye:'作业', kaoshi:'考试', chengji:'成绩',
+  tiku:'题库', kewen:'课文', zhishi:'知识', xuexi:'学习', fuxi:'复习',
+  yuxi:'预习', tuijian:'推荐', fenxiang:'分享', shoucang:'收藏', dianzan:'点赞',
+  pinglun:'评论', guanzhu:'关注', siliao:'私聊', jiaoyou:'交友', taiyang:'太阳', yueliang:'月亮', xingxing:'星星', yutian:'雨天',
+  xiatian:'夏天', dongtian:'冬天', chuntian:'春天', qiutian:'秋天', lengre:'冷热',
+  wendu:'温度', kongqi:'空气', wumai:'雾霾', caoyuan:'草原',
+  senlin:'森林', dahai:'大海', jianghe:'江河', hupo:'湖泊', gaoshan:'高山',
+  chengshi:'城市', xiangcun:'乡村', xiaoqu:'小区', loushang:'楼上', louxia:'楼下',
+  dianping:'电梯', louti:'楼梯', fangjian:'房间', keti:'客厅', woshi:'卧室',
+  chufang:'厨房', weishengjian:'卫生间', yangtai:'阳台', shufang:'书房',
+  zhuozi:'桌子', yizi:'椅子', chuang:'床', dengpao:'灯泡', chuanghu:'窗户',
+  menkou:'门口', qiangbi:'墙壁', diban:'地板', tianhua:'天花',
+  yifu:'衣服', kuzi:'裤子', xiezi:'鞋子', maozi:'帽子', weijin:'围巾',
+  shoutao:'手套', beizi:'杯子', fanwan:'饭碗', kuaizi:'筷子',
+  huoguo:'火锅', xiaodao:'小刀', chazi:'叉子', tangchi:'汤匙', fanhe:'饭盒',
+  shuiguo:'水果', pingguo:'苹果', xiangjiao:'香蕉', juzi:'橘子', putao:'葡萄',
+  xigua:'西瓜', caomei:'草莓', taozi:'桃子', lizi:'李子', mangguo:'芒果',
+  lizhi:'荔枝', longyan:'龙眼', boluo:'菠萝', chengzi:'橙子', shiliu:'石榴',
+  shucai:'蔬菜', baicai:'白菜', luobo:'萝卜', huluobo:'胡萝卜', qiezi:'茄子',
+  huanggua:'黄瓜', xihongshi:'西红柿', tudou:'土豆', yangcong:'洋葱', shengjiang:'生姜',
+  dazao:'大枣', yumi:'玉米', huasheng:'花生', shupian:'薯片', binggan:'饼干',
+  dangao:'蛋糕', mianbao:'面包', niunai:'牛奶', doujiang:'豆浆', mantou:'馒头',
+  jiaozi:'饺子', baozi:'包子', huntun:'馄饨', miantiao:'面条', mifan:'米饭',
+  mizhou:'米粥', qingtang:'清汤', chaocai:'炒菜', rou:'肉', jirou:'鸡肉', zhurou:'猪肉',
+  niurou:'牛肉', yangrou:'羊肉', xiaoyu:'小鱼', daxia:'大虾', pangxie:'螃蟹',
+  jidan:'鸡蛋', yadan:'鸭蛋', dounao:'豆腐', doufu:'豆腐', lajiao:'辣椒',
+  dasuan:'大蒜', xiaocong:'小葱', xiangcai:'香菜', weidao:'味道', xiangwei:'香味',
+  tiande:'甜的', suande:'酸的', kude:'苦的', lade:'辣的', xiande:'咸的',
+  chaoji:'超级', feichang:'非常', zhende:'真的', queshi:'确实', kending:'肯定',
+  dajia:'大家', quanbu:'全部', yixie:'一些', xuduo:'许多', shaoshu:'少数',
+  shiying:'适应', xuehui:'学会', dongde:'懂得', mingbai:'明白', liaojie:'了解',
+  zhidao:'知道', renshi:'认识', xiangxin:'相信', juede:'觉得', ganjue:'感觉',
+  xiwang:'希望', yuanwang:'愿望', mengxiang:'梦想', mubiao:'目标', jihua:'计划',
+  anpai:'安排', zhunbei:'准备', kaolv:'考虑', jueding:'决定', xuanze:'选择',
+  bangzhu:'帮助', bangbang:'帮帮', jianyi:'建议', tixing:'提醒', guli:'鼓励',
+  anwei:'安慰', baohan:'包含', baokuo:'包括', chule:'除了', lingwai:'另外',
+  yijing:'已经', zhengzai:'正在', jiangyao:'将要', kuaiyao:'快要', ganggang:'刚刚',
+  mashang:'马上', likede:'立刻', yiqian:'以前', yihou:'以后',
+  zuijin:'最近', zuowan:'昨晚',
+  zhoutian:'周天', zhoumo:'周末', zhouyi:'周一', zhouer:'周二', zhousan:'周三',
+  zhousi:'周四', zhouwu:'周五', zhouliu:'周六', liuyue:'六月', qiyue:'七月',
+  yidian:'一点', liangdian:'两点', sandian:'三点', wushi:'五十',
+  shifen:'十分', biaozhun:'标准', jingque:'精确', dayue:'大约', chabuduo:'差不多',
+  keyi:'可以', bixing:'不行', xingde:'行的', haoba:'好吧',
+  xingba:'行吧', suanba:'算吧', lema:'了吗', en:'嗯',
+  weiwei:'喂喂', haha:'哈哈', hehe:'呵呵', wuwu:'呜呜', aya:'哎呀',
+  oyo:'哎哟', tianna:'天哪', wode:'我的', nide:'你的', tade:'他的', tade2:'她的',
+  ziji:'自己', bieren:'别人', shei:'谁', shemme:'什么', shenm:'什么', weishenm:'为什么',
+  zenmele:'怎么了', zayang:'怎样', duoshao:'多少', jige:'几个', duoda:'多大',
+  naer:'哪儿', nali:'哪里', zher:'这儿', zheli:'这里', nar:'那儿',
+  nengbuneng:'能不能', haobuhao:'好不好', xingbuxing:'行不行', qubiqu:'去不去',
+  laibulai:'来不来', chibule:'吃不吃', shibushi:'是不是', youmeiyou:'有没有',
+  meiyou:'没有', youde:'有的', wufa:'无法', budeng:'不等', buyao:'不要',
+  xiangyao:'想要', xuyao:'需要', yinggai:'应该', keneng:'可能',
+  yexu:'也许', dagai:'大概', jihu:'几乎', zongshi:'总是', youshi:'有时',
+  changchang:'常常', pingchang:'平常', tongchang:'通常', yiqi:'一起', yikuai:'一块',
+  danshi:'但是', keshi:'可是', ranhou:'然后', suoyi:'所以', yinwei:'因为',
+  ruguo:'如果', naime:'那么', biran:'必然', jiran:'既然', suiran:'虽然',
+  jinguan:'尽管', zhiyao:'只要', chufei:'除非', wulun:'无论', buguan:'不管',
+  bingqie:'并且', erqie:'而且', huohe:'或者', haishi:'还是', yiji:'以及',
+  ganjin:'赶紧', jinkuai:'尽快', zuihao:'最好', yiding:'一定', yidingyao:'一定要',
+  yongyuan:'永远', shike:'时刻', lijing:'立即', gaosu:'告诉', jiaoxue:'教学',
+  tinghuai:'听话', guai:'乖', yongbao:'拥抱', qin:'亲', xiaole:'笑了', ku:'哭',
+  shengqi:'生气', gaoxing:'高兴', yukuai:'愉快', manyi:'满意',
+  xingfen:'兴奋', jinzhang:'紧张', haipa:'害怕', danxin:'担心', youlv:'忧虑',
+  fannao:'烦恼', xinku:'辛苦', leile:'累了', pijuan:'疲倦', jingli:'精力',
+  jingshen:'精神', yunqi:'运气', xingyun:'幸运', zhufu:'祝福', xinnian:'新年',
+  shengrikuaile:'生日快乐', xinniankuaile:'新年快乐', jierikuaile:'节日快乐',
+  zhouniankuaile:'周年快乐', hunli:'婚礼', tuanyuan:'团圆',
+  chunjie:'春节', zhongqiu:'中秋', duanwu:'端午', qingming:'清明', yuanxiao:'元宵',
+  guoqing:'国庆', laodong:'劳动', ertong:'儿童', fumu:'父母', funv:'妇女',
+  qingren:'情人', shengren:'圣人', laoren:'老人', qingnian:'青年', zhongnian:'中年'
+};
+const PUNCT_NAME = {
+  '.':'句号', ',':'逗号', '!':'感叹号', '?':'问号', "'":'单引号', '"':'双引号',
+  ':':'冒号', ';':'分号', '(':'左括号', ')':'右括号', '[':'左方括号', ']':'右方括号',
+  '{':'左花括号', '}':'右花括号', '<':'小于号', '>':'大于号', '-':'减号', '_':'下划线',
+  '=':'等号', '+':'加号', '/':'斜杠', '\\':'反斜杠', '@':'艾特', '#':'井号',
+  '%':'百分号', '&':'和号', '*':'星号'
+};
+
+/* ================= 键盘布局 ================= */
+const KEY9 = { '2':'abc', '3':'def', '4':'ghi', '5':'jkl', '6':'mno', '7':'pqrs', '8':'tuv', '9':'wxyz' };
+const LAYOUT = {
+  qwerty: [
+    ['1','2','3','4','5','6','7','8','9','0'],
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['shift','z','x','c','v','b','n','m','back'],
+    ['globe','26','123','left','right','space','enter']
+  ],
+  nine: [
+    ['1','2','3'],
+    ['4','5','6'],
+    ['7','8','9'],
+    ['star','0','hash'],
+    ['globe','26','back','space','enter']
+  ],
+  sym: [
+    ['.',',','!','?',"'",'"',':',';'],
+    ['(',')','[',']','{','}','<','>'],
+    ['-','_','=','+','/','\\','@','#','%','&','*'],
+    ['abc','left','right','space','back','enter']
+  ]
+};
+
+function keyLabel(k) {
+  if (k === 'space') return '空格';
+  if (k === 'enter') return state.enterBehavior === 'send' ? '发送' : '换行';
+  if (k === 'shift') return '⇧';
+  if (k === 'back') return '⌫';
+  if (k === 'left') return '◀';
+  if (k === 'right') return '▶';
+  if (k === 'abc') return 'ABC';
+  if (k === '123') return '123';
+  if (k === '26') return state.layout === 'nine' ? '26' : '9';
+  if (k === 'star') return '＊';
+  if (k === 'hash') return '，';
+  if (k === 'globe') return ICO.globe;
+  if (state.layout === 'nine' && k === '0') return '空格';
+  if (state.layout === 'nine' && KEY9[k]) {
+    const set = KEY9[k];
+    const cur = set[state.nineKey === k ? state.nineIdx : 0];
+    return '<span class="k9">' + set + '</span><span class="k9-main">' + cur + '</span>';
+  }
+  return k;
+}
+function keyHtml(k) {
+  let type = 'char';
+  if (k === 'space') type = 'wide';
+  if (k === 'enter') type = 'enter';
+  if (['globe','left','right','shift','back','abc','123','26','star','hash'].indexOf(k) !== -1) type = 'tool';
+  if (state.layout === 'nine' && KEY9[k]) type = 'k9key';
+  let label = keyLabel(k);
+  if (state.shift && /^[a-z]$/.test(k)) label = k.toUpperCase();
+  const cls = type + (state.shift && k === 'shift' ? ' shift-on' : '');
+  const aria = esc(label.replace(/<[^>]+>/g, ''));
+  return '<button class="key ' + cls + '" data-k="' + k + '" aria-label="' + aria + '">' + label + '</button>';
+}
+function renderIme() {
+  const rows = state.page === 'sym' ? LAYOUT.sym : LAYOUT[state.layout];
+  els.ime.innerHTML = rows.map(r => '<div class="ime-row">' + r.map(keyHtml).join('') + '</div>').join('');
 }
 
-function renderList(){
-  const listEl=document.getElementById('fileList');
-  const cntEl=document.getElementById('fileCount');
-  cntEl.textContent=state.records.length+' 个';
-  if(state.records.length===0){
-    listEl.innerHTML='<div class="empty"><div class="ic">▯</div><p>这里还空着</p><p class="tip">上传一个文件试试，文件保存 6 个月</p></div>';
+/* ================= 文本操作 ================= */
+function growInput() {
+  els.input.style.height = 'auto';
+  els.input.style.height = Math.min(els.input.scrollHeight, 118) + 'px';
+}
+function scrollBottom() {
+  els.stage.scrollTop = els.stage.scrollHeight;
+}
+function syncInput(doSentences) {
+  growInput();
+  scrollBottom();
+  if (doSentences) handleSentences();
+}
+function insertChar(ch) {
+  const t = els.input.value, at = Math.min(state.caret, t.length);
+  els.input.value = t.slice(0, at) + ch + t.slice(at);
+  state.caret = at + ch.length;
+  if (state.caret <= state.spokenUpTo) state.spokenUpTo += ch.length;
+  syncInput(false);
+}
+function insertText(txt) {
+  if (!txt) return;
+  const t = els.input.value, at = Math.min(state.caret, t.length);
+  els.input.value = t.slice(0, at) + txt + t.slice(at);
+  state.caret = at + txt.length;
+  if (state.caret <= state.spokenUpTo) state.spokenUpTo += txt.length;
+  syncInput(false);
+}
+function moveCaret(d) {
+  const t = els.input.value;
+  state.caret = Math.max(0, Math.min(t.length, state.caret + d));
+  try { els.input.setSelectionRange(state.caret, state.caret); } catch (e) {}
+}
+function commitBuffer() {
+  if (!state.buffer) return '';
+  const w = state.buffer;
+  state.buffer = '';
+  insertText(w);
+  renderCompose();
+  return w;
+}
+
+/* ================= 句子朗读 ================= */
+function handleSentences() {
+  if (state.speechMode !== 'sentence') return;
+  const text = els.input.value;
+  if (text.length < state.spokenUpTo) { state.spokenUpTo = text.length; return; }
+  const seg = text.slice(state.spokenUpTo);
+  if (!seg) return;
+  const re = /[^。！？…!?.;；]+[。！？…!?.;；]/g;
+  let m, covered = 0;
+  while ((m = re.exec(seg))) covered = m.index + m[0].length;
+  re.lastIndex = 0;
+  while ((m = re.exec(seg))) Speech.speak(m[0].trim(), { source: 'input' });
+  state.spokenUpTo += covered;
+}
+
+/* ================= 组合条 ================= */
+function renderCompose() {
+  if (!state.buffer) { els.composeBar.hidden = true; return; }
+  els.composeBar.hidden = false;
+  const lower = state.buffer.toLowerCase();
+  const hits = [];
+  Object.keys(DICT).forEach(k => {
+    if (k.indexOf(lower) === 0 && hits.indexOf(DICT[k]) === -1) hits.push(DICT[k]);
+  });
+  const chips = hits.slice(0, 3).map(w => '<button class="cand" data-w="' + esc(w) + '">' + esc(w) + '</button>').join('');
+  els.composeText.innerHTML = '<span>' + esc(state.buffer) + '</span><span class="caret"></span>' + chips;
+}
+
+/* ================= 输入法按键 ================= */
+function resetNine() { state.nineKey = ''; }
+function typeChar(ch) {
+  const isLetter = /^[a-zA-Z]$/.test(ch);
+  const isDigit = /^[0-9]$/.test(ch);
+  if (isLetter) {
+    const up = state.shift ? ch.toUpperCase() : ch;
+    state.buffer += up;
+    if (state.shift) { state.shift = false; renderIme(); }
+    renderCompose();
+    tick(letterFreq(ch));
+    speakLetters(up);
     return;
   }
-  listEl.innerHTML='';
-  state.records.forEach(r=>listEl.appendChild(fileRow(r)));
+  if (isDigit) {
+    commitBuffer();
+    insertChar(ch);
+    tick(letterFreq(ch));
+    Speech.speak(ch);
+    return;
+  }
 }
-
-function fileRow(r){
-  const row=document.createElement('div'); row.className='file-row';
-  const dl=daysLeft(r.expiresAt||Date.now()+MAX_AGE_MS);
-  const expCls=dl<0?'late':(dl<=30?'warn':'ok');
-  const expTxt=dl<0?'已过期':('剩 '+dl+' 天');
-
-  const nameEl=document.createElement('div'); nameEl.className='file-main';
-  const nm=document.createElement('div'); nm.className='file-name'; nm.textContent=r.name; nm.title=r.name;
-  const mt=document.createElement('div'); mt.className='file-meta';
-  mt.innerHTML='<span>'+fmtSize(r.size)+'</span><span>上传于 '+esc(new Date(r.uploadedAt).toLocaleDateString())+'</span><span class="expiry '+expCls+'">'+expTxt+'</span>';
-  nameEl.appendChild(nm); nameEl.appendChild(mt);
-
-  const act=document.createElement('div'); act.className='file-actions';
-  const copy=document.createElement('button'); copy.className='dl'; copy.textContent='复制链接'; copy.type='button';
-  copy.addEventListener('click', ()=> copyLink(r));
-  const open=document.createElement('button'); open.className='dl'; open.textContent='打开'; open.type='button';
-  open.addEventListener('click', ()=>{ if(r.link) window.open(r.link,'_blank'); else toast('没有链接','bad'); });
-  const del=document.createElement('button'); del.className='del'; del.textContent='删除'; del.type='button';
-  del.addEventListener('click', ()=> removeFile(r));
-  act.appendChild(copy); act.appendChild(open); act.appendChild(del);
-
-  const ico=document.createElement('div'); ico.className='file-ico'; ico.textContent=extName(r.name);
-  row.appendChild(ico); row.appendChild(nameEl); row.appendChild(act);
-  return row;
-}
-
-/* ================= 上传 ================= */
-function doUpload(file){
-  const bar=document.getElementById('bar'), prog=document.getElementById('progress'), meta=document.getElementById('upMeta');
-  prog.classList.add('show'); meta.classList.add('show');
-  meta.textContent='上传中：'+file.name; bar.style.width='0%';
-
-  const fd=new FormData();
-  fd.append('file',file);
-  if(state.token) fd.append('token',state.token);
-  if(state.folderId) fd.append('folderId',state.folderId);
-
-  const xhr=new XMLHttpRequest();
-  xhr.open('POST', GF_UPLOAD);
-  xhr.upload.onprogress=e=>{ if(e.lengthComputable) bar.style.width=Math.round(e.loaded/e.total*100)+'%'; };
-  xhr.onload=()=>{
-    prog.classList.remove('show'); meta.classList.remove('show');
-    let res=null; try{ res=JSON.parse(xhr.responseText); }catch(e){}
-    if(res && res.status==='ok' && res.data){
-      const d=res.data;
-      if(d.guestToken && !state.token){ // 首次上传：拿到凭证与文件夹
-        state.token=d.guestToken; state.folderId=d.parentFolder;
-        state.expiresAt=Date.now()+MAX_AGE_MS;
-        store.token=state.token; store.folderId=state.folderId; store.expiresAt=state.expiresAt;
-        setFolderExpiry(); // 让 GoFile 在 6 个月后自动删掉整个文件夹
-        updateCredUI();
-      }
-      const rec={ id:d.id, name:d.name||file.name, size:d.size||file.size,
-        link:d.downloadPage||('https://gofile.io/d/'+d.code),
-        uploadedAt:Date.now(), expiresAt:state.expiresAt||(Date.now()+MAX_AGE_MS) };
-      state.records=[rec].concat(state.records); saveRecords();
-      toast('上传成功'); renderList();
-    } else {
-      const msg=(res&&res.status==='error-limits')?'存储数量已达 GoFile 免费上限':'上传失败('+xhr.status+')';
-      toast(msg,'bad');
-    }
-  };
-  xhr.onerror=()=>{ prog.classList.remove('show'); meta.classList.remove('show'); toast('网络错误，上传失败','bad'); };
-  xhr.send(fd);
-}
-
-// 尽力而为：给首次上传创建的文件夹设置 6 个月过期，让 GoFile 到点自动删除
-async function setFolderExpiry(){
-  if(!state.token || !state.folderId) return;
-  const expSec=Math.floor(state.expiresAt/1000);
-  try{
-    await fetch(GF_API+'/contents/'+encodeURIComponent(state.folderId)+'/update',{
-      method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
-      body:JSON.stringify({attribute:'expiry', attributeValue:expSec})
-    });
-  }catch(e){ /* 网络失败不阻塞上传 */ }
-}
-
-/* ================= 删除 / 复制 / 导出 ================= */
-async function removeFile(r){
-  if(!confirm('确定删除「'+r.name+'」？删除后无法恢复。')) return;
-  if(state.token){
-    try{
-      const ok=await apiDelete(r.id);
-      if(!ok){ toast('远端删除失败，可能凭证失效','bad'); }
-    }catch(e){ toast('远端删除失败：'+e.message,'bad'); }
+/* 9 键多击轮换：点一次=a，再点=b，再点=c */
+function nineTap(k) {
+  const set = KEY9[k];
+  if (state.nineKey === k) {
+    state.nineIdx = (state.nineIdx + 1) % set.length;
+    state.buffer = state.buffer.slice(0, state.nineStart) + set[state.nineIdx];
   } else {
-    toast('无凭证，仅从本机记录移除（文件链接仍有效）','bad');
+    state.nineKey = k;
+    state.nineIdx = 0;
+    state.nineStart = state.buffer.length;
+    state.buffer += set[0];
   }
-  state.records=state.records.filter(x=>x.id!==r.id);
-  saveRecords(); renderList(); toast('已删除');
+  renderIme();
+  renderCompose();
+  tick(letterFreq(set[state.nineIdx]));
+  Speech.speak(set[state.nineIdx]);
 }
-
-async function apiDelete(id){
-  const res=await fetch(GF_API+'/contents',{
-    method:'DELETE', headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
-    body:JSON.stringify({contentsId:id})
-  });
-  const d=await res.json();
-  return d && d.status==='ok';
-}
-
-function copyLink(r){
-  const txt=r.link||('https://gofile.io/d/'+r.code);
-  copyText(txt, '链接已复制');
-}
-function copyAllLinks(){
-  if(!state.records.length){ toast('还没有文件','bad'); return; }
-  const txt=state.records.map(r=>r.name+'  '+daysLeft(r.expiresAt||Date.now()+MAX_AGE_MS)+'天\n'+r.link).join('\n\n');
-  copyText(txt,'全部链接已复制');
-}
-
-function copyText(txt, okMsg){
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(()=>toast(okMsg)).catch(()=>fallbackCopy(txt,okMsg));
-  } else fallbackCopy(txt,okMsg);
-}
-function fallbackCopy(txt,okMsg){
-  const ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
-  document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); toast(okMsg); }catch(e){ toast('复制失败，请手动复制','bad'); }
-  ta.remove();
-}
-
-/* ================= 凭证 ================= */
-function copyCred(){
-  const data={token:state.token, folderId:state.folderId, expiresAt:state.expiresAt};
-  copyText(JSON.stringify(data), state.token?'凭证已复制':'还没有凭证，请先上传一个文件');
-}
-function pasteCred(){
-  const val=document.getElementById('credText').value.trim();
-  if(!val){ toast('请先粘贴凭证内容','bad'); return; }
-  try{
-    const d=JSON.parse(val);
-    if(!d.token){ throw new Error('no token'); }
-    state.token=d.token; state.folderId=d.folderId||''; state.expiresAt=Number(d.expiresAt)||0;
-    store.token=state.token; store.folderId=state.folderId; store.expiresAt=state.expiresAt;
-    toast('凭证已生效'); render();
-  }catch(e){ toast('凭证格式不对，请检查','bad'); }
-}
-function clearCred(){
-  if(!state.token){ toast('当前没有凭证','bad'); return; }
-  if(!confirm('清除凭证？之后将无法再删除已上传的文件（链接仍有效）。')) return;
-  state.token=''; state.folderId=''; state.expiresAt=0;
-  store.token=''; store.folderId=''; store.expiresAt=0;
-  toast('凭证已清除'); render();
-}
-
-/* ================= 清单导入导出 ================= */
-function exportList(){
-  if(!state.records.length){ toast('还没有文件','bad'); return; }
-  const data={token:state.token, folderId:state.folderId, expiresAt:state.expiresAt, files:state.records};
-  copyText(JSON.stringify(data), '清单已复制（含凭证，可粘贴到另一台设备）');
-}
-function importList(file){
-  const reader=new FileReader();
-  reader.onload=()=>{
-    try{
-      const d=JSON.parse(reader.result);
-      if(Array.isArray(d.files)){
-        if(d.token && !state.token){ state.token=d.token; state.folderId=d.folderId||''; state.expiresAt=Number(d.expiresAt)||0; store.token=state.token; store.folderId=state.folderId; store.expiresAt=state.expiresAt; }
-        state.records=d.files.concat(state.records);
-        saveRecords(); render(); toast('清单已导入');
-      } else if(Array.isArray(d)){
-        state.records=d.concat(state.records); saveRecords(); renderList(); toast('清单已导入');
-      } else throw new Error('bad');
-    }catch(e){ toast('清单格式不对','bad'); }
-  };
-  reader.readAsText(file);
-}
-
-function saveRecords(){ state.records=state.records.slice(0,10000); store.records=state.records; }
-
-/* ================= 凭证状态即时更新 ================= */
-function updateCredUI(){
-  const st=document.querySelector('.cred-status');
-  if(st) st.textContent=state.token
-    ? ('令牌 '+esc(state.token.slice(0,12))+'… · 文件夹到期 '+(state.expiresAt?new Date(state.expiresAt).toLocaleDateString():'-'))
-    : '不用注册，第一次上传文件时系统会自动生成你的专属凭证。';
-  const tg=document.getElementById('toggleCred');
-  if(tg) tg.textContent=state.token?'凭证管理':'了解更多';
-}
-
-/* ================= 辅助 ================= */
-function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-/* ================= 安全锁（视觉层，非真正加密） ================= */
-document.addEventListener('contextmenu', e=>e.preventDefault());
-document.addEventListener('keydown', e=>{
-  const k=e.key;
-  const blocked=(k==='F12')||((e.ctrlKey||e.metaKey)&&['u','U','i','I','j','J','c','C','s','S'].includes(k))||((e.ctrlKey||e.metaKey)&&e.shiftKey&&['i','I','j','J','c','C'].includes(k));
-  if(blocked) e.preventDefault();
-});
-document.addEventListener('dragstart', e=>{ if(e.target.tagName==='IMG') e.preventDefault(); });
-
-/* ================= 凭证登录门 ================= */
-/* 简单哈希（防君子不防小人，不是密码学安全） */
-function simpleHash(s){
-  let h=5381;
-  for(let i=0;i<s.length;i++){ h=((h<<5)+h)^s.charCodeAt(i); }
-  return (h>>>0).toString(36);
-}
-
-function initGate(){
-  const gate=document.getElementById('gate');
-  const box=document.getElementById('gateBox');
-
-  // ===== 玻璃拖动 =====
-  const dragHandle=document.getElementById('dragHandle');
-  let dragging=false, startX=0, startY=0, origX=0, origY=0, lastMoveT=0, lastDX=0;
-  function onDown(e){
-    dragging=true; box.classList.add('dragging');
-    const pt=e.touches?e.touches[0]:e;
-    startX=pt.clientX; startY=pt.clientY;
-    const rect=box.getBoundingClientRect();
-    origX=rect.left+rect.width/2; origY=rect.top+rect.height/2;
-    lastMoveT=Date.now();
-    e.preventDefault();
+function spaceKey() {
+  flushLetters();
+  const w = commitBuffer();
+  resetNine();
+  insertChar(' ');
+  if (w) {
+    if (state.speechMode === 'sentence') { Speech.speak(w, { source: 'input' }); state.spokenUpTo = state.caret; }
+  } else {
+    Speech.speak('空格');
   }
-  function onMove(e){
-    if(!dragging) return;
-    const pt=e.touches?e.touches[0]:e;
-    const dx=pt.clientX-startX, dy=pt.clientY-startY;
-    const now=Date.now();
-    const dt=now-lastMoveT;
-    const speed=dt>0?Math.abs(dx-lastDX)/dt:0;
-    lastDX=dx; lastMoveT=now;
-    // 快拖时压扁
-    const squash=Math.min(speed*2,0.08);
-    box.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${1-squash}, ${1+squash})`;
+  tick(300);
+}
+function backspace() {
+  flushLetters();
+  resetNine();
+  if (state.buffer) {
+    state.buffer = state.buffer.slice(0, -1);
+    renderCompose();
+    tick(300);
+    Speech.speak('退格');
+    return;
   }
-  function onUp(){
-    if(!dragging) return;
-    dragging=false; box.classList.remove('dragging');
-    // 弹回中心
-    box.style.transition='transform .4s cubic-bezier(.34,1.56,.64,1)';
-    box.style.transform='translate(-50%,-50%)';
-    setTimeout(()=>{ box.style.transition=''; },400);
+  if (!els.input.value.length) return;
+  const t = els.input.value;
+  const at = Math.max(0, state.caret - 1);
+  els.input.value = t.slice(0, at) + t.slice(state.caret);
+  if (state.caret <= state.spokenUpTo) state.spokenUpTo = Math.max(0, state.spokenUpTo - 1);
+  state.caret = at;
+  syncInput(false);
+  tick(300);
+  Speech.speak('退格');
+}
+function enterKey() {
+  flushLetters();
+  if (state.enterBehavior === 'send') { commitBuffer(); resetNine(); send(); }
+  else { commitBuffer(); resetNine(); insertChar('\n'); tick(380); Speech.speak('换行'); }
+}
+function pressKey(k) {
+  if (k === 'shift') { state.shift = !state.shift; renderIme(); tick(700); Speech.speak(state.shift ? '大写' : '小写'); return; }
+  if (k === 'back') { backspace(); return; }
+  if (k === 'space') { spaceKey(); return; }
+  if (k === 'enter') { enterKey(); return; }
+  if (k === 'globe') { switchIme('system'); return; }
+  if (k === '26') {
+    state.layout = state.layout === 'qwerty' ? 'nine' : 'qwerty';
+    state.page = 'abc';
+    resetNine();
+    renderIme();
+    tick(600);
+    Speech.speak(state.layout === 'qwerty' ? '二十六键' : '九键');
+    return;
   }
-  dragHandle.addEventListener('mousedown', onDown);
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
-  dragHandle.addEventListener('touchstart', onDown, {passive:false});
-  document.addEventListener('touchmove', onMove, {passive:false});
-  document.addEventListener('touchend', onUp);
-
-  const tabLogin=document.getElementById('tabLogin');
-  const tabReg=document.getElementById('tabRegister');
-  const loginPane=document.getElementById('loginPane');
-  const regPane=document.getElementById('registerPane');
-  const pill=document.getElementById('gatePill');
-  const tabs=document.getElementById('gateTabs');
-  const saved=localStorage.getItem('yb_access_pw')||'';
-  let activeTab='login';
-
-  function setPill(which){
-    if(which==='login'){ pill.style.transform='translateX(0)'; }
-    else { pill.style.transform='translateX(100%)'; }
+  if (k === 'left' || k === 'right') { resetNine(); moveCaret(k === 'left' ? -1 : 1); tick(420); return; }
+  if (k === 'abc') { state.page = 'abc'; renderIme(); tick(600); Speech.speak('字母'); return; }
+  if (k === '123' || k === 'star') { state.page = 'sym'; resetNine(); renderIme(); tick(600); Speech.speak('数字与符号'); return; }
+  if (k === 'hash') {
+    flushLetters();
+    commitBuffer(); resetNine(); insertChar('，'); tick(460);
+    Speech.speak('逗号');
+    return;
   }
-  function showLogin(){
-    activeTab='login';
-    tabLogin.classList.add('active'); tabReg.classList.remove('active');
-    loginPane.classList.remove('hidden'); regPane.classList.add('hidden');
-    setPill('login');
-    document.getElementById('gatePw').focus();
-  }
-  function showRegister(){
-    activeTab='register';
-    tabReg.classList.add('active'); tabLogin.classList.remove('active');
-    regPane.classList.remove('hidden'); loginPane.classList.add('hidden');
-    setPill('register');
-    document.getElementById('regPw1').focus();
-  }
-  tabLogin.addEventListener('click', showLogin);
-  tabReg.addEventListener('click', showRegister);
-
-  // ===== 标签药丸跟手拖动 =====
-  let tabDrag=false, tabStartX=0, pillStartX=0, lastTabT=0, tabLastDX=0;
-  function tabDown(e){
-    tabDrag=true; tabs.classList.add('dragging');
-    const pt=e.touches?e.touches[0]:e;
-    tabStartX=pt.clientX;
-    pillStartX=activeTab==='login'?0:pill.offsetWidth;
-    lastTabT=Date.now(); tabLastDX=0;
-    e.preventDefault();
-  }
-  function tabMove(e){
-    if(!tabDrag) return;
-    const pt=e.touches?e.touches[0]:e;
-    let dx=pt.clientX-tabStartX;
-    const maxX=pill.offsetWidth;
-    dx=Math.max(0,Math.min(maxX,pillStartX+dx));
-    const now=Date.now();
-    const dt=now-lastTabT;
-    const speed=dt>0?Math.abs(dx-tabLastDX)/dt:0;
-    tabLastDX=dx; lastTabT=now;
-    // 快拖压扁
-    const sq=Math.min(speed*1.5,0.06);
-    pill.style.transform=`translateX(${dx}px) scale(${1+sq}, ${1-sq})`;
-    if(dx>maxX/2){ tabReg.classList.add('active'); tabLogin.classList.remove('active'); }
-    else { tabLogin.classList.add('active'); tabReg.classList.remove('active'); }
-  }
-  function tabUp(){
-    if(!tabDrag) return;
-    tabDrag=false; tabs.classList.remove('dragging');
-    const maxX=pill.offsetWidth;
-    const dx=parseFloat(pill.style.transform.replace('translateX(','').split(' ')[0].replace('px)',''))||0;
-    if(dx>maxX/2) showRegister(); else showLogin();
-  }
-  tabs.addEventListener('mousedown', tabDown);
-  document.addEventListener('mousemove', tabMove);
-  document.addEventListener('mouseup', tabUp);
-  tabs.addEventListener('touchstart', tabDown, {passive:false});
-  document.addEventListener('touchmove', tabMove, {passive:false});
-  document.addEventListener('touchend', tabUp);
-
-  if(LOCK_CONFIG.locked || saved) showLogin(); else showRegister();
-
-  // ===== 登录 =====
-  const loginBtn=document.getElementById('loginBtn');
-  const loginPw=document.getElementById('gatePw');
-  const loginErr=document.getElementById('loginErr');
-  function doLogin(){
-    const v=loginPw.value;
-    if(!v||v.length<4){ loginErr.textContent='凭证至少 4 位'; return; }
-    if(LOCK_CONFIG.locked){
-      if(simpleHash(v)===LOCK_CONFIG.pwHash){
-        gate.classList.add('hidden'); sessionStorage.setItem('yb_unlocked','1'); render();
-      } else { loginErr.textContent='凭证错误，请重试'; loginPw.value=''; loginPw.focus(); }
-    } else {
-      if(v===saved){
-        gate.classList.add('hidden'); sessionStorage.setItem('yb_unlocked','1'); render();
-      } else { loginErr.textContent='凭证错误，请重试'; loginPw.value=''; loginPw.focus(); }
+  if (state.page === 'sym') {
+    flushLetters();
+    if (PUNCT_NAME[k]) {
+      commitBuffer(); resetNine(); insertChar(k); tick(460); handleSentences();
+      return;
     }
+    commitBuffer(); resetNine(); insertChar(k); tick(460); Speech.speak(PUNCT_NAME[k] || k);
+    return;
   }
-  loginBtn.addEventListener('click', doLogin);
-  loginPw.addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
-
-  // ===== 注册 =====
-  const regBtn=document.getElementById('regBtn');
-  const regPw1=document.getElementById('regPw1');
-  const regPw2=document.getElementById('regPw2');
-  const regErr=document.getElementById('regErr');
-  function doRegister(){
-    const v1=regPw1.value, v2=regPw2.value;
-    if(!v1||v1.length<4){ regErr.textContent='凭证至少 4 位'; return; }
-    if(v1!==v2){ regErr.textContent='两次输入不一致'; return; }
-    localStorage.setItem('yb_access_pw', v1);
-    gate.classList.add('hidden'); sessionStorage.setItem('yb_unlocked','1'); render();
-  }
-  regBtn.addEventListener('click', doRegister);
-  regPw2.addEventListener('keydown', e=>{ if(e.key==='Enter') doRegister(); });
+  if (state.layout === 'nine' && k === '0') { spaceKey(); return; }
+  if (state.layout === 'nine' && KEY9[k]) { nineTap(k); return; }
+  typeChar(k);
 }
 
-/* ===== 导出带密码锁的发布版 ===== */
-async function exportLocked(){
-  const pw=localStorage.getItem('yb_access_pw')||'';
-  if(!pw){ toast('请先设置访问凭证','bad'); return; }
-  const pwHash=simpleHash(pw);
-  try{
-    let src;
-    try{ src=await (await fetch(location.href)).text(); }
-    catch(e){ src='<!DOCTYPE html>\n'+document.documentElement.outerHTML; }
-    const lockedSrc=src.replace(/const LOCK_CONFIG = \{[^}]*\};/,
-      "const LOCK_CONFIG = { locked:true, pwHash:'"+pwHash+"' };");
-    if(lockedSrc===src){ toast('替换失败，请联系开发者','bad'); return; }
-    const blob=new Blob([lockedSrc],{type:'text/html;charset=utf-8'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download='index.html';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('已下载带密码锁的 index.html，把它传到 GitHub');
-  }catch(e){ toast('生成失败：'+e.message,'bad'); }
+/* ================= 发送与消息 ================= */
+function addBubble(text) {
+  els.empty.classList.add('hide');
+  const id = 'm' + (++state.msgSeq);
+  const div = document.createElement('div');
+  div.className = 'msg';
+  div.dataset.id = id;
+  div.innerHTML =
+    '<div class="msg-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v18M8.5 6.5v11M15.5 6.5v11M5 9.5v5M19 9.5v5"/></svg></div>' +
+    '<div class="msg-body"><div class="msg-text"></div><div class="msg-wave"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span></div></div>';
+  div.querySelector('.msg-text').textContent = text;
+  els.msgList.appendChild(div);
+  scrollBottom();
+  return div;
+}
+function send() {
+  const text = els.input.value.trim();
+  if (!text) { toast('还没有内容，先打点什么吧'); return; }
+  const full = els.input.value;
+  const div = addBubble(text);
+  if (state.speechMode === 'sentence') {
+    const tail = full.slice(state.spokenUpTo).trim();
+    if (tail) Speech.speak(tail, { source: 'input' });
+  } else {
+    Speech.speak(text, { source: 'bubble', id: div.dataset.id });
+  }
+  els.input.value = '';
+  els.input.style.height = 'auto';
+  state.caret = 0; state.spokenUpTo = 0; state.buffer = '';
+  renderCompose();
+  scrollBottom();
+}
+/* ================= 输入法切换 ================= */
+function switchIme(mode) {
+  if (mode === state.ime) return;
+  state.ime = mode;
+  try { state.caret = els.input.selectionStart !== null ? els.input.selectionStart : els.input.value.length; } catch (e) {}
+  if (mode === 'system') {
+    els.ime.hidden = true;
+    els.input.readOnly = false;
+    els.imePillText.textContent = '系统输入法';
+    els.input.focus();
+    try { els.input.setSelectionRange(state.caret, state.caret); } catch (e) {}
+    toast('已切换到系统输入法，可直接打字');
+  } else {
+    els.ime.hidden = false;
+    els.input.readOnly = true;
+    els.input.blur();
+    els.imePillText.textContent = '自定义输入法';
+    renderIme();
+    toast('已切换到自定义输入法');
+  }
+}
+
+/* ================= 提示 ================= */
+function toast(msg) {
+  els.toast.textContent = msg;
+  els.toast.classList.add('show');
+  clearTimeout(state.toastTimer);
+  state.toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2200);
+  Speech.speak(msg, { source: 'toast' });
+}
+
+/* ================= 设置 ================= */
+function modeLabel() { return state.speechMode === 'sentence' ? '打一句，念一句' : '打完按回车再念'; }
+function enterLabel() { return state.enterBehavior === 'send' ? '发送' : '换行'; }
+function rateLabel(r) {
+  if (r <= 0.5) return '慢速';
+  if (r <= 0.75) return '稍慢';
+  if (r < 1.25) return '标准';
+  if (r < 1.5) return '稍快';
+  if (r < 2) return '快速';
+  return '极速';
+}
+function pitchLabel(p) {
+  if (p <= 0.5) return '低沉';
+  if (p <= 0.75) return '稍低';
+  if (p < 1.25) return '标准';
+  if (p < 1.5) return '偏高';
+  if (p < 2) return '清亮';
+  return '尖细';
+}
+function openSettings() {
+  els.settingsOverlay.hidden = false;
+  requestAnimationFrame(() => els.settingsOverlay.classList.add('show'));
+  const l = state.layout === 'qwerty' ? '二十六键' : '九键';
+  Speech.speak('设置。语音模式：' + modeLabel() + '。回车键：' + enterLabel() + '。键盘布局：' + l + '。', { source: 'toast' });
+}
+function closeSettings() {
+  els.settingsOverlay.classList.remove('show');
+  setTimeout(() => { els.settingsOverlay.hidden = true; }, 280);
+  Speech.speak('好的，设置好了。', { source: 'toast' });
+}
+
+/* ================= 欢迎 ================= */
+let welcomed = false;
+function showWelcome() {
+  els.welcomeOverlay.hidden = false;
+  requestAnimationFrame(() => els.welcomeOverlay.classList.add('show'));
+}
+function closeWelcome() {
+  els.welcomeOverlay.classList.remove('show');
+  setTimeout(() => { els.welcomeOverlay.hidden = true; }, 280);
+}
+function armWelcome() {
+  const say = () => {
+    if (!welcomed) {
+      welcomed = true;
+      Speech.speak('欢迎来到自言自语。在这里打下的每一个字，都会被大声念出来。连键盘、弹窗和提示，也都会自己开口说话。');
+    }
+    document.removeEventListener('pointerdown', say);
+    document.removeEventListener('keydown', say);
+  };
+  document.addEventListener('pointerdown', say);
+  document.addEventListener('keydown', say);
+}
+
+/* ================= 事件 ================= */
+function bindEvents() {
+  els.ime.addEventListener('click', e => {
+    const k = e.target.closest('.key');
+    if (!k) return;
+    pressKey(k.dataset.k);
+  });
+  /* 候选词点击：上屏并朗读 */
+  els.composeText.addEventListener('click', e => {
+    const chip = e.target.closest('.cand');
+    if (!chip) return;
+    flushLetters();
+    resetNine();
+    const w = chip.dataset.w;
+    state.buffer = '';
+    insertText(w);
+    renderCompose();
+    tick(500);
+    Speech.speak(w, { source: 'input' });
+    if (state.speechMode === 'sentence') state.spokenUpTo = state.caret;
+  });
+  els.sendBtn.addEventListener('click', send);
+  els.input.addEventListener('input', () => syncInput(true));
+  els.input.addEventListener('keydown', e => {
+    if (state.ime === 'custom') return;
+    if (e.key === 'Enter' && state.enterBehavior === 'send' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+  els.imePillText.closest('.pill').addEventListener('click', () => switchIme(state.ime === 'custom' ? 'system' : 'custom'));
+  els.stopBtn.addEventListener('click', () => { Speech.stop(); toast('好的，我安静了'); });
+  els.brand.addEventListener('click', () => {
+    Speech.speak('自言自语，打字转语音。连键盘、弹窗和提示，都会自己开口说话。', { source: 'toast' });
+  });
+  els.settingsBtn.addEventListener('click', openSettings);
+  els.settingsClose.addEventListener('click', closeSettings);
+  els.settingsOverlay.addEventListener('click', e => { if (e.target === els.settingsOverlay) closeSettings(); });
+  els.welcomeBtn.addEventListener('click', closeWelcome);
+  els.welcomeOverlay.addEventListener('click', e => {
+    if (e.target === els.welcomeOverlay) closeWelcome();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && els.settingsOverlay.classList.contains('show')) closeSettings();
+  });
+
+  els.modeSentence.addEventListener('change', () => {
+    if (!els.modeSentence.checked) return;
+    state.speechMode = 'sentence';
+    Speech.speak('打一句，念一句');
+  });
+  els.modeEnter.addEventListener('change', () => {
+    if (!els.modeEnter.checked) return;
+    state.speechMode = 'enter';
+    Speech.speak('打完按回车再念');
+  });
+  els.enterSend.addEventListener('change', () => {
+    if (!els.enterSend.checked) return;
+    state.enterBehavior = 'send';
+    renderIme();
+    Speech.speak('回车键：发送');
+  });
+  els.enterNewline.addEventListener('change', () => {
+    if (!els.enterNewline.checked) return;
+    state.enterBehavior = 'newline';
+    renderIme();
+    Speech.speak('回车键：换行');
+  });
+  els.layoutQwerty.addEventListener('change', () => {
+    if (!els.layoutQwerty.checked) return;
+    state.layout = 'qwerty';
+    state.page = 'abc';
+    resetNine();
+    renderIme();
+    Speech.speak('二十六键');
+  });
+  els.layoutNine.addEventListener('change', () => {
+    if (!els.layoutNine.checked) return;
+    state.layout = 'nine';
+    state.page = 'abc';
+    resetNine();
+    renderIme();
+    Speech.speak('九键');
+  });
+  els.listenBtn.addEventListener('click', () => {
+    if (!('speechSynthesis' in window)) { toast('当前浏览器不支持语音合成'); return; }
+    Speech.stop();
+    Speech.speak('你好，我是自言自语。你听到我了吗？', { source: 'toast' });
+  });
+  els.voiceSel.addEventListener('change', () => {
+    state.voiceURI = els.voiceSel.value;
+    const v = state.voices.find(x => x.voiceURI === state.voiceURI);
+    const short = v ? ((v.name || '').replace(/\s*(zh[-_ ]?CN|Chinese|普通话|中文).*$/i, '').trim() || v.name) : '';
+    Speech.speak('声音：' + short);
+  });
+  els.rateRange.addEventListener('input', () => {
+    state.rate = parseFloat(els.rateRange.value);
+    els.rateVal.textContent = rateLabel(state.rate);
+  });
+  els.rateRange.addEventListener('change', () => Speech.speak('语速：' + rateLabel(state.rate)));
+  els.pitchRange.addEventListener('input', () => {
+    state.pitch = parseFloat(els.pitchRange.value);
+    els.pitchVal.textContent = pitchLabel(state.pitch);
+  });
+  els.pitchRange.addEventListener('change', () => Speech.speak('音调：' + pitchLabel(state.pitch)));
 }
 
 /* ================= 启动 ================= */
-if(sessionStorage.getItem('yb_unlocked')==='1'){
-  document.getElementById('gate').classList.add('hidden');
-  render();
-} else {
-  initGate();
+function init() {
+  renderIme();
+  renderCompose();
+  els.input.readOnly = true;
+  bindEvents();
+  showWelcome();
+  armWelcome();
+  if (!('speechSynthesis' in window)) {
+    setTimeout(() => toast('当前浏览器不支持语音合成，请换用 Chrome / Edge / Safari 打开'), 900);
+  }
 }
+init();
 </script>
 </body>
 </html>
